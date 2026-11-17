@@ -1,66 +1,79 @@
 # VICE: Project Doom
 
-A 2D side-scrolling action platformer written in C++ with SFML 2. This group project is for **CS-1002 Programming Fundamentals (Fall 2026)** and emphasizes secure, responsible software development.
+This is our C++ SFML game for the CS-1002 Programming Fundamentals project. It’s a 2D side-scrolling action platformer where you play as Detective Quinn Hart and fight through three levels full of enemies, hazards, and pickups.
 
-**Collaborators:** Shaheer · Tehreem · Maryam
+Built by: Shaheer · Tehreem · Maryam
 
-## Game
+## What is the game?
 
-Play as Detective Quinn Hart, a VICE detective fighting criminals and mutants across three levels. The game uses **flip-screen scrolling**: the view changes to the next static screen as the player crosses an edge.
+You’re a VICE detective in a dystopian future where the city is overrun by criminals and mutants. The game follows a simple action-platformer flow: move, jump, fight enemies, grab pickups, clear each level, and survive the final push.
 
-### Player
-- Move, jump, duck, and run while crouching
+### Player abilities
+- Move left and right
+- Jump
+- Duck and crouch
 - Climb ladders
-- Swing on hanging vines in Level 3
+- Run while crouching
+- Swing across vines in Level 3
 
 ### Weapons
 
-| Weapon | Ammo | Damage / use |
+| Weapon | Ammo | Damage / Effect |
 |---|---:|---|
-| Laser Whip | Unlimited | Close-range attack |
-| .44 Magnum | 10 bullets per level | 10 HP per shot |
-| Grenades | 3 per level | 40 HP per explosion |
+| Laser Whip | Unlimited | Close-range melee attack |
+| .44 Magnum | 10 per level | 10 HP per shot |
+| Grenades | 3 per level | 40 HP explosion |
 
-Ammo, grenades, and health can be replenished with pickups. Only the selected weapon is active.
+Only one weapon is active at a time, and the player can switch between them during gameplay.
 
-### Enemies and levels
+### Enemy types
+- Spiked Crawler
+- Blue Jumping Enemy
+- Flying Insect
+- Leopard
+- Green Shooter
+- Tribal Warrior
+- Leaping Fish
 
-| Level | Setting | Enemies and features |
+Each enemy behaves differently and uses different methods to attack or pressure the player. The exact combat balance and some behavior details are tracked in `docs/PLAN.md`.
+
+### Levels
+
+| Level | Theme | Main features |
 |---|---|---|
-| 1 | Construction Site | 4 spiked crawlers, 5 blue jumping enemies, 6 flying insects; ladders, girders, and sequential random spawns |
-| 2 | Ricardo Port | 10 leopards, 4 green shooters, 8 tribal warriors; platforms, containers, and meshes |
-| 3 | Cliffs, Waterfalls and Jungle | 10 leaping fish, 8 tribal warriors, 10 leopards, 7 flying insects, 5 blue jumping enemies; swinging, destructible, and regrowing vines |
+| 1 | Construction Site | Ladders, girders, random enemy spawns, basic platforming |
+| 2 | Ricardo Port | More aggressive enemies, variable platforms, combat pressure |
+| 3 | Cliffs, Waterfalls and Jungle | Vines, mixed enemies, tougher movement and combat situations |
 
-Enemy types include ground patrols, jumpers, flying insects, leopards, stationary shooters, shielded warriors, and leaping fish. Their behaviors and defeat rules are being finalized in `docs/PLAN.md`.
+The game uses flip-screen scrolling instead of smooth camera movement. As the player crosses the screen boundary, the camera jumps to the next static screen.
 
-### Pickups, scoring, and progression
+## Start the project
 
-- A spiked crawler may drop ammo or a temporary Magnum damage boost.
-- Health regeneration appears at a random location every 25 seconds, remains for 6 seconds, restores 100 HP, and reduces incoming damage by 75% for 4 seconds. Extra HP carries into the next life.
-- Time dilation slows enemies and projectiles to half speed for 7 seconds. Double jump allows a second mid-air jump; see `docs/PLAN.md` for unresolved rules.
-- Enemy points: crawler 50; blue jumper and flying insect 75; leopard, green shooter, and leaping fish 100; tribal warrior 125.
-- Level-clear bonuses: Level 1 = 1,000; Level 2 = 1,500; Level 3 = 2,000. Clear all levels without dying for a 5,000-point perfect-run bonus.
-- Level 1 speed bonus: finish under 60 / 45 / 30 seconds for 500 / 1,000 / 1,200 points.
+This project is built with C++ and SFML 2.x. It has been tested on Linux/WSL and should be developed using the same SFML major version across the team.
 
-## Requirements and build
-
-Tested on Linux (Ubuntu / WSL) with **g++** and **SFML 2.6.1**. The project uses the SFML 2.x API and is not compatible with SFML 3.x.
-
-Install dependencies:
+### Install dependencies
 
 ```bash
-sudo apt-get install g++ libsfml-dev
+sudo apt-get install g++
+sudo apt-get install libsfml-dev
 ```
 
-Build and run from the repository root (the directory containing `Data/`):
+### Build and run
+
+From the repository root:
 
 ```bash
 make
 ./vice-project-doom
+```
+
+To clean build files:
+
+```bash
 make clean
 ```
 
-Manual build:
+### Manual compile
 
 ```bash
 g++ -c vice_project_doom.cpp
@@ -68,11 +81,11 @@ g++ vice_project_doom.o -o vice-project-doom -lsfml-graphics -lsfml-audio -lsfml
 ./vice-project-doom
 ```
 
-The Makefile enables AddressSanitizer and UndefinedBehaviorSanitizer by default. Assets use relative paths (for example, `Data/bg.png`), and SFML audio assets must be `.ogg` rather than `.mp3`.
+> Run the game from the repo root so asset paths like `Data/bg.png` resolve correctly.
 
 ## Controls
 
-Update this table to match the final implementation.
+This is the default control layout for now. If we change keys later, update this section with the final version.
 
 | Action | Key |
 |---|---|
@@ -84,42 +97,53 @@ Update this table to match the final implementation.
 | Switch weapon | `Q` |
 | Quit | `Esc` |
 
-## Project layout
+## Project structure
 
 ```text
-Data/                 Sprites, backgrounds, and audio
-levels/               ASCII maps: level1.txt, level2.txt, level3.txt
-docs/PLAN.md          Plan and decisions log
-src/main.cpp          Window, main loop, and game states
-src/config.h          Constants for sizes, speeds, health, and damage
-src/level.*           Map loading, tile queries, and flip-screen behavior
-src/physics.*         Collision helpers
-src/player.*          Player movement and abilities
-src/weapons.*         Weapons and projectiles
-src/enemies.*         Enemy behavior and spawning
-src/powerups.*        Power-ups
-src/hud_score.*       HUD and scoring
-Makefile              Build and clean targets
+pf_semester_project-game/
+├── README.md
+├── Makefile
+├── .gitignore
+├── Data/                  Sprites, backgrounds, and audio
+├── levels/                ASCII level files
+├── docs/
+│   └── PLAN.md            Project decisions and planning notes
+├── src/
+│   ├── main.cpp           Game loop and main window
+│   ├── config.h           Constants and tuning values
+│   ├── level.*            Level loading and tile logic
+│   ├── physics.*           Collision helpers
+│   ├── player.*           Player movement and abilities
+│   ├── weapons.*          Weapons and projectiles
+│   ├── enemies.*          Enemy behavior and spawning
+│   ├── powerups.*         Pickups and power-up logic
+│   └── hud_score.*        HUD and scoring
+└── ...
 ```
 
-## Mandatory coding constraints
+## Important project rules
 
-These course rules apply to all project code:
+These rules are mandatory for the course and for the quality of the project.
 
-- **No global variables.** Do not declare shared mutable state at file or namespace scope, and do not use `extern` state. Keep state in local variables and pass what functions need through parameters.
-- **No `struct`, custom `class`, `std::vector`, or other container types.** Use only permitted C++ built-in types and arrays. SFML types may be used where required to call the library; do not create project-defined classes or structs.
-- Store multiple entities in parallel arrays indexed by entity number. Define array capacities and tunable values as named constants in `config.h`; mark inactive entries and reuse free slots rather than deleting array elements.
-- Avoid magic numbers. Put speeds, damage, health, timers, spawn counts, and capacities in `config.h`.
-- Use small, focused functions; per-entity functions should take an entity index. Bounds-check array and map access. Free memory allocated with `new` using `delete[]`, and check asset-loading results.
-- Use consistent indentation, descriptive names, and comments that explain why. Compile with `-Wall -Wextra` without introducing warnings.
+- No global variables.
+- No `struct`, no custom `class`, and no `std::vector` or similar containers.
+- Use only basic C++ built-ins and arrays.
+- Keep entities in parallel arrays indexed by ID (for example `enemyX[i]`, `enemyHP[i]`).
+- Put all important values in `config.h` instead of using magic numbers.
+- Mark dead entities as inactive and reuse free slots instead of deleting them.
+- Use small functions that handle one behavior at a time.
+- Free allocated memory properly and check asset loads.
+- Keep code clean, readable, and warning-free with `-Wall -Wextra`.
 
-## Level maps
+The overall design is meant to be simple, data-driven, and safe. This makes it easier to work in a team and keeps the project aligned with the course restrictions.
 
-Each text map in `levels/` is 14 rows high. Each screen is 18 columns wide, with screens arranged side by side. Use `.` for empty cells.
+## Level map format
+
+Each level is stored as a text map in `levels/`. A single level is 14 rows tall and each screen is 18 columns wide. Screens are placed side by side to create the full world.
 
 | Character | Meaning |
 |---|---|
-| `.` | Empty |
+| `.` | Empty cell |
 | `#` | Solid block |
 | `=` | Horizontal girder |
 | `|` | Vertical girder |
@@ -128,24 +152,52 @@ Each text map in `levels/` is 14 rows high. Each screen is 18 columns wide, with
 | `v` | Vine |
 | `~` | Water |
 
-Update this legend when adding tile types. The map loader must validate dimensions and characters before accessing map data.
+Use `.` for empty space so the map stays readable and easy to edit.
+
+## Gameplay systems
+
+### Pickups
+- Ammo refill
+- Health pickup
+- Time dilation effect
+- Double jump
+
+### Scoring
+- Enemy kills give points
+- Level completion gives a big bonus
+- Clearing every level without dying gives a perfect-run bonus
+- Speed bonus for finishing levels quickly
+
+### Milestones
+
+- [ ] Foundation setup
+- [ ] Walking skeleton with movement and basic combat
+- [ ] Level 1 complete
+- [ ] Level 2 complete
+- [ ] Level 3 complete
+- [ ] Polish and final bug fixing
+
+Anything still uncertain should be written down in `docs/PLAN.md` so the entire team is aligned.
 
 ## Team workflow
 
-Work primarily in the files assigned to your area. Shared files such as `config.h`, `main.cpp`, and any interfaces should be changed in small, coordinated pull requests. Everyone should understand the full project.
+We keep work divided by area, but everyone should still understand the full game. Shared files such as `config.h` and `main.cpp` should be changed carefully and in small pull requests.
 
-| Area | Owner | Files / responsibilities |
+| Area | Owner | Responsibility |
 |---|---|---|
-| Player and physics | TBD | Movement, jump, duck, ladders, vines, camera, health, lives |
-| Combat and enemies | TBD | Weapons, projectiles, enemy types, spawning |
-| World and systems | TBD | Levels, maps, power-ups, HUD, scoring, menus, audio, assets |
+| Player and physics | TBD | Movement, jumping, ladders, vines, camera, health |
+| Combat and enemies | TBD | Weapons, projectiles, enemy AI, spawning |
+| World and systems | TBD | Level loading, pickups, HUD, score, audio, assets |
 
-- Keep the default branch buildable; use a short-lived branch per task (`feat/<area>-<thing>`, `fix/<bug>`, or `chore/<task>`).
-- Open pull requests for review; reviewers should build and run the game. Merge small changes frequently and delete merged branches.
-- Use specific, imperative, one-line commit messages. Track specification work with GitHub Issues.
-- Coordinate binary asset changes with the asset owner. Do not commit build output (`build/`, `*.o`, or the executable) or the 36 MB specification PDF.
+### Git habits
+- Keep `main` buildable
+- Use feature branches such as `feat/player-ladders` or `fix/enemy-ai`
+- Pull and rebase before pushing
+- Open PRs for review
+- Merge small changes often
+- Use clear one-line commit messages
 
-Example workflow:
+Example:
 
 ```bash
 git clone <repo-url>
@@ -158,27 +210,23 @@ git push -u origin feat/player-ladders
 
 ## Security, privacy, and responsible AI
 
-- Never commit passwords, tokens, API keys, personal data, or private files. Report accidental exposure promptly and rotate affected credentials.
-- Use two-factor authentication and reviewed pull requests. Keep repository access limited to collaborators.
-- Treat map files as untrusted input. Validate dimensions, characters, and array bounds; check asset loads and release allocated memory.
-- Use the agreed SFML version and avoid unreviewed third-party code.
-- AI tools may support planning, explanation, or review, but contributors must read, test, and understand suggestions, follow course academic-integrity rules, and disclose assistance when required. Never share credentials, private data, or unreleased course materials with AI tools.
-- Use and credit assets in accordance with their licenses and the course requirements.
+We take data and code safety seriously.
 
-## Milestones and open decisions
-
-- [ ] **M0 — Foundation:** repository setup, starter split, bug fixes, Makefile, and agreed interfaces
-- [ ] **M1 — Walking skeleton:** movement, jumping, ducking, flip-screen, and one whip-defeated enemy
-- [ ] **M2 — Level 1:** ladders, girders, enemies, weapons, HUD, score, and time bonus
-- [ ] **M3 — Level 2:** leopards, shooters, warriors, and power-ups
-- [ ] **M4 — Level 3:** waterfall, vines, fish, and mixed enemies
-- [ ] **M5 — Polish:** menus, win/game-over states, perfect-run bonus, audio, and bug bash
-
-Record decisions in `docs/PLAN.md`, including enemy/player health and damage, lives, double-jump and time-dilation rules, spawn timing, and details from reference gameplay. Add milestone dates when agreed. Keep behavior data-driven where practical because Phase 2 requirements may change.
+- Do not commit passwords, keys, personal info, or private files.
+- Use GitHub security best practices and keep repo access limited.
+- Treat level files as untrusted input and validate them properly.
+- Check memory safety and avoid bad array access or leaks.
+- Use the agreed SFML version only.
+- AI can help with planning or explaining ideas, but we still need to understand and test any code before committing it.
+- Never share private or sensitive information with AI tools.
 
 ## Credits
 
-- Sprites: [The Spriters Resource](https://www.spriters-resource.com/) and assets supplied with the course PDF
-- SFML: [SFML](https://www.sfml-dev.org/) 2.6
-- Game concept and reference gameplay: CS-1002 Programming Fundamentals, Fall 2026
-- Green-screen removal and audio conversion: tools linked in the course helper document
+- Sprites from The Spriters Resource and course-provided assets
+- SFML 2.6
+- Game concept and reference gameplay from CS-1002, Fall 2026
+- Audio conversion and asset preparation done with course-approved tools
+
+## Final note
+
+This project is more than just a game. It is also a chance to learn how to build a project under real constraints, work together as a team, and handle code quality and safety with discipline.
