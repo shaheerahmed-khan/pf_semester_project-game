@@ -1,126 +1,66 @@
-# pf_semester_project-game
+# VICE: Project Doom
 
-**VICE: Project Doom** — a 2D side-scrolling action platformer written in C++ with SFML.
-
-This is a group project for **CS-1002 Programming Fundamentals (Fall 2026)**. It also serves as a showcase of **cybersecurity practices, privacy, and the responsible use of AI** in how we build, store and share our work (see [Security, Privacy & Responsible AI](#security-privacy--responsible-ai)).
+A 2D side-scrolling action platformer written in C++ with SFML 2. This group project is for **CS-1002 Programming Fundamentals (Fall 2026)** and emphasizes secure, responsible software development.
 
 **Collaborators:** Shaheer · Tehreem · Maryam
 
----
+## Game
 
-## Table of Contents
+Play as Detective Quinn Hart, a VICE detective fighting criminals and mutants across three levels. The game uses **flip-screen scrolling**: the view changes to the next static screen as the player crosses an edge.
 
-1. [Story](#story)
-2. [Game Overview](#game-overview)
-3. [Requirements & Build](#requirements--build)
-4. [Controls](#controls)
-5. [Project Structure](#project-structure)
-6. [Coding Rules](#coding-rules)
-7. [Team & Ownership](#team--ownership)
-8. [Git Workflow](#git-workflow)
-9. [Level Map Format](#level-map-format)
-10. [Security, Privacy & Responsible AI](#security-privacy--responsible-ai)
-11. [Milestones](#milestones)
-12. [Assets & Credits](#assets--credits)
-
----
-
-## Story
-
-In 2139 the City is overrun by insane criminals and mutants. Authorities blame a new, highly lethal drug called **Gel**. You play **Detective Quinn Hart** of the VICE squad, fighting through hostile territory to uncover the truth behind it, while the BEDA president watches from the top of the company headquarters and his plans near completion.
-
-## Game Overview
-
-The game has **three contiguous levels**, **seven enemy types** in varying numbers, **three weapons**, and a player with several abilities.
-
-### Camera
-Levels use **flip-screen (flick-screen) scrolling**, not smooth scrolling. The world is a grid of static single screens. When the player crosses the right edge, the view cuts to the next screen and places the player at the left edge, and the reverse going back. Enemies keep their state across screens. Level 3's initial waterfall needs no vertical scrolling, only platform jumping.
-
-### Player abilities
-- Move left and right
-- Jump
-- Duck
-- Run while crouching
-- Climb ladders (up and down)
-- Swing between platforms on hanging brown vines (Level 3)
+### Player
+- Move, jump, duck, and run while crouching
+- Climb ladders
+- Swing on hanging vines in Level 3
 
 ### Weapons
-Only the currently selected weapon can be used. Switch with a key.
 
-| Weapon | Ammo | Damage | Notes |
-|---|---|---|---|
-| Laser Whip | Unlimited | — | Close-range signature weapon |
-| .44 Magnum | 10 bullets per level | 10 HP | Ranged |
-| Grenades | 3 per level | 40 HP | Explosive, for dangerous enemies |
+| Weapon | Ammo | Damage / use |
+|---|---:|---|
+| Laser Whip | Unlimited | Close-range attack |
+| .44 Magnum | 10 bullets per level | 10 HP per shot |
+| Grenades | 3 per level | 40 HP per explosion |
 
-Magnum ammo and grenades are restored by pickups. The player also has a health bar, restored by health pickups.
+Ammo, grenades, and health can be replenished with pickups. Only the selected weapon is active.
 
-### Enemies
+### Enemies and levels
 
-| Enemy | Behavior | Defeated by |
+| Level | Setting | Enemies and features |
 |---|---|---|
-| Spiked Crawler | Ground-based, patrols platforms and belts, contact damage only | One laser or grenade hit |
-| Blue Jumping Enemy | Bounces toward the player, contact damage, dangerous near gaps | One whip strike, or grenades in groups |
-| Flying Insect | Hovers and flies across gaps on elevated paths | One whip strike (standing or mid-air) or Magnum |
-| Leopard | Fast, low predator that sprints and pounces | Whip or a well-timed Magnum shot |
-| Green Shooter | Stationary on platforms, fires low projectiles across the screen | Standing whip strike or ranged fire |
-| Tribal Warrior | Masked humanoid with shield and bat (jungle) | See team decisions log |
-| Leaping Fish | Jumps in and out of water and shoots fireballs | See team decisions log |
+| 1 | Construction Site | 4 spiked crawlers, 5 blue jumping enemies, 6 flying insects; ladders, girders, and sequential random spawns |
+| 2 | Ricardo Port | 10 leopards, 4 green shooters, 8 tribal warriors; platforms, containers, and meshes |
+| 3 | Cliffs, Waterfalls and Jungle | 10 leaping fish, 8 tribal warriors, 10 leopards, 7 flying insects, 5 blue jumping enemies; swinging, destructible, and regrowing vines |
 
-### Levels
+Enemy types include ground patrols, jumpers, flying insects, leopards, stationary shooters, shielded warriors, and leaping fish. Their behaviors and defeat rules are being finalized in `docs/PLAN.md`.
 
-| Level | Setting | Enemies |
-|---|---|---|
-| 1 | The Construction Site | 4 spiked crawlers, 5 blue jumping, 6 flying insects (spawn sequentially, in random timing, each run). Vertical, horizontal and crumbling girders, plus climbable ladders |
-| 2 | The Ricardo Port | 10 leopards, 4 green shooters, 8 tribal warriors. Variable-height platforms, containers and meshes |
-| 3 | The Cliffs, Waterfalls and Jungle | 10 flying fish, 8 tribal warriors, 10 leopards, 7 flying insects, 5 blue jumping. Interactive swinging vines, destructible and regrowing vines |
+### Pickups, scoring, and progression
 
-### Power-ups
+- A spiked crawler may drop ammo or a temporary Magnum damage boost.
+- Health regeneration appears at a random location every 25 seconds, remains for 6 seconds, restores 100 HP, and reduces incoming damage by 75% for 4 seconds. Extra HP carries into the next life.
+- Time dilation slows enemies and projectiles to half speed for 7 seconds. Double jump allows a second mid-air jump; see `docs/PLAN.md` for unresolved rules.
+- Enemy points: crawler 50; blue jumper and flying insect 75; leopard, green shooter, and leaping fish 100; tribal warrior 125.
+- Level-clear bonuses: Level 1 = 1,000; Level 2 = 1,500; Level 3 = 2,000. Clear all levels without dying for a 5,000-point perfect-run bonus.
+- Level 1 speed bonus: finish under 60 / 45 / 30 seconds for 500 / 1,000 / 1,200 points.
 
-| Power-up | Effect |
-|---|---|
-| Ammo drop / refill | Killing a Spiked Crawler may drop extra ammo or a temporary Magnum damage boost |
-| Health regeneration | Appears at a random location every 25 s, disappears after 6 s. Restores 100 HP, reduces incoming damage by 75% for 4 s, and extra HP carries into the next life |
-| Time dilation | Enemies, projectiles and bullets move at 50% speed for 7 s |
-| Double jump | A second jump in mid-air (see decisions log for the exact energy rule) |
+## Requirements and build
 
-### Scoring
+Tested on Linux (Ubuntu / WSL) with **g++** and **SFML 2.6.1**. The project uses the SFML 2.x API and is not compatible with SFML 3.x.
 
-| Category | Action | Points |
-|---|---|---|
-| Enemy kills | Spiked Crawler | 50 |
-| | Blue Jumping Enemy | 75 |
-| | Flying Insect | 75 |
-| | Leopard | 100 |
-| | Green Shooter | 100 |
-| | Tribal Warrior | 125 |
-| | Leaping Fish | 100 |
-| Level clear | Level 1 / 2 / 3 | 1000 / 1500 / 2000 |
-| Perfect run | Clear all levels without dying | 5000 |
-| Level 1 speed bonus | Under 60 s / 45 s / 30 s | 500 / 1000 / 1200 |
-
----
-
-## Requirements & Build
-
-Tested with **SFML 2.6.1** on Linux (Ubuntu / WSL). The code is written for the SFML **2.x** API and **will not compile against SFML 3.x**. All team members must use the same major version.
-
-**One-time install**
+Install dependencies:
 
 ```bash
-sudo apt-get install g++
-sudo apt-get install libsfml-dev
+sudo apt-get install g++ libsfml-dev
 ```
 
-**Build and run (Makefile)**
+Build and run from the repository root (the directory containing `Data/`):
 
 ```bash
-make            # builds ./vice-project-doom
+make
 ./vice-project-doom
-make clean      # remove build output
+make clean
 ```
 
-**Manual build (matches the course instructions)**
+Manual build:
 
 ```bash
 g++ -c vice_project_doom.cpp
@@ -128,173 +68,117 @@ g++ vice_project_doom.o -o vice-project-doom -lsfml-graphics -lsfml-audio -lsfml
 ./vice-project-doom
 ```
 
-> **Run the game from the repository root** (the folder that contains `Data/`), not from inside `Data/`. Assets are loaded with relative paths such as `Data/bg.png`.
-
-**Debug builds** add `-fsanitize=address,undefined` (the Makefile does this by default) to catch out-of-bounds array access early.
-
----
+The Makefile enables AddressSanitizer and UndefinedBehaviorSanitizer by default. Assets use relative paths (for example, `Data/bg.png`), and SFML audio assets must be `.ogg` rather than `.mp3`.
 
 ## Controls
 
-> Keys are our choice. Update this table to match the final implementation.
+Update this table to match the final implementation.
 
 | Action | Key |
 |---|---|
 | Move left / right | `A` / `D` or arrow keys |
 | Jump | `Space` |
 | Duck / crouch | `S` or Down |
-| Climb ladder | `W` / `S` |
+| Climb | `W` / `S` |
 | Attack | `J` |
 | Switch weapon | `Q` |
 | Quit | `Esc` |
 
----
+## Project layout
 
-## Project Structure
-
-```
-pf_semester_project-game/
-├── README.md
-├── Makefile
-├── .gitignore
-├── Data/                 sprites, backgrounds, audio (.ogg only; SFML has no mp3)
-├── levels/               level1.txt, level2.txt, level3.txt (ASCII maps)
-├── docs/
-│   └── PLAN.md           plan and decisions log
-└── src/
-    ├── main.cpp          window, main loop, game states
-    ├── config.h          ALL constants (sizes, speeds, HP, damage)
-    ├── state.h / .cpp    shared global arrays and variables
-    ├── level.h / .cpp    map loading, tile queries, flip-screen
-    ├── physics.h / .cpp  collision helpers
-    ├── player.h / .cpp   movement, jump, duck, ladders, vines
-    ├── weapons.h / .cpp  whip, magnum, grenades, projectiles
-    ├── enemies.h / .cpp  all enemy types and spawning
-    ├── powerups.h / .cpp
-    └── hud_score.h / .cpp
+```text
+Data/                 Sprites, backgrounds, and audio
+levels/               ASCII maps: level1.txt, level2.txt, level3.txt
+docs/PLAN.md          Plan and decisions log
+src/main.cpp          Window, main loop, and game states
+src/config.h          Constants for sizes, speeds, health, and damage
+src/level.*           Map loading, tile queries, and flip-screen behavior
+src/physics.*         Collision helpers
+src/player.*          Player movement and abilities
+src/weapons.*         Weapons and projectiles
+src/enemies.*         Enemy behavior and spawning
+src/powerups.*        Power-ups
+src/hud_score.*       HUD and scoring
+Makefile              Build and clean targets
 ```
 
----
+## Mandatory coding constraints
 
-## Coding Rules
+These course rules apply to all project code:
 
-The course restricts what we may use. **These rules are mandatory.**
+- **No global variables.** Do not declare shared mutable state at file or namespace scope, and do not use `extern` state. Keep state in local variables and pass what functions need through parameters.
+- **No `struct`, custom `class`, `std::vector`, or other container types.** Use only permitted C++ built-in types and arrays. SFML types may be used where required to call the library; do not create project-defined classes or structs.
+- Store multiple entities in parallel arrays indexed by entity number. Define array capacities and tunable values as named constants in `config.h`; mark inactive entries and reuse free slots rather than deleting array elements.
+- Avoid magic numbers. Put speeds, damage, health, timers, spawn counts, and capacities in `config.h`.
+- Use small, focused functions; per-entity functions should take an entity index. Bounds-check array and map access. Free memory allocated with `new` using `delete[]`, and check asset-loading results.
+- Use consistent indentation, descriptive names, and comments that explain why. Compile with `-Wall -Wextra` without introducing warnings.
 
-- **No `struct`, no `class`, no `vector`.** Use plain variables, arrays, pointers and functions.
-- Store entities as **parallel arrays** indexed by entity number (for example `enemyX[i]`, `enemyHP[i]`). Array sizes come from constants in `config.h` (`MAX_ENEMIES`, `MAX_BULLETS`, ...).
-- Dead entities are never deleted. Mark `active = false` and reuse the first free slot.
-- Shared state is declared `extern` in `state.h` and defined once in `state.cpp`. Each owner adds their variables under their own comment banner. Never reorder existing lines.
-- **No magic numbers.** Every tunable value (speed, damage, HP, timers, spawn counts) lives in `config.h`.
-- Per-entity behavior goes in functions that take an index (`updateLeopard(int i)`).
-- Free everything allocated with `new` (use `delete[]`). Check the return value of every asset load.
-- Style: 4-space indent or tabs (stay consistent with the file), descriptive names, one function does one job, comment the *why*.
-- The code must compile with `-Wall -Wextra` without new warnings.
+## Level maps
 
----
+Each text map in `levels/` is 14 rows high. Each screen is 18 columns wide, with screens arranged side by side. Use `.` for empty cells.
 
-## Team & Ownership
+| Character | Meaning |
+|---|---|
+| `.` | Empty |
+| `#` | Solid block |
+| `=` | Horizontal girder |
+| `|` | Vertical girder |
+| `c` | Crumbling girder |
+| `H` | Ladder |
+| `v` | Vine |
+| `~` | Water |
 
-Each person mostly edits their own files, which keeps merge conflicts rare.
+Update this legend when adding tile types. The map loader must validate dimensions and characters before accessing map data.
 
-| Area | Owner | Files |
+## Team workflow
+
+Work primarily in the files assigned to your area. Shared files such as `config.h`, `main.cpp`, and any interfaces should be changed in small, coordinated pull requests. Everyone should understand the full project.
+
+| Area | Owner | Files / responsibilities |
 |---|---|---|
-| Player and physics: movement, jump, duck, ladders, vines, flip-screen camera, health/lives | _TBD_ | `player`, `physics` |
-| Combat and enemies: weapons, projectiles, all enemy types, spawn rules | _TBD_ | `weapons`, `enemies` |
-| World and systems: level loader and maps, power-ups, HUD, scoring, menus, audio, assets | _TBD_ | `level`, `powerups`, `hud_score`, `Data/`, `levels/` |
+| Player and physics | TBD | Movement, jump, duck, ladders, vines, camera, health, lives |
+| Combat and enemies | TBD | Weapons, projectiles, enemy types, spawning |
+| World and systems | TBD | Levels, maps, power-ups, HUD, scoring, menus, audio, assets |
 
-Shared files (`config.h`, `state.h`, `state.cpp`, `main.cpp`) are conflict hotspots: change them in **tiny PRs**, merge fast, and tell the others.
+- Keep the default branch buildable; use a short-lived branch per task (`feat/<area>-<thing>`, `fix/<bug>`, or `chore/<task>`).
+- Open pull requests for review; reviewers should build and run the game. Merge small changes frequently and delete merged branches.
+- Use specific, imperative, one-line commit messages. Track specification work with GitHub Issues.
+- Coordinate binary asset changes with the asset owner. Do not commit build output (`build/`, `*.o`, or the executable) or the 36 MB specification PDF.
 
-Every team member must be able to explain **all** of the code, not just their own part.
-
----
-
-## Git Workflow
-
-- `main` **always compiles and runs.** Never push to it directly. It is protected: pull request plus one approval.
-- One short-lived branch per task: `feat/<area>-<thing>`, `fix/<bug>`, `chore/<task>` (for example `feat/enemy-leopard`).
-- Before pushing: `git pull --rebase origin main`.
-- Open a PR when the feature works. The reviewer **builds and runs** it before approving.
-- Merge small and often (at least daily). Delete merged branches.
-- Commit messages: imperative, specific, one line ("Add leopard pounce state"). Everyone commits regularly so the history shows individual contributions.
-- Track work with **one GitHub Issue per spec requirement**, grouped by milestone.
-- Binary assets in `Data/` are committed by the asset owner only. Keep files small.
-- Do **not** commit build output (`build/`, `*.o`, the executable) or the 36 MB spec PDF.
-
-Quick reference:
+Example workflow:
 
 ```bash
 git clone <repo-url>
 git checkout -b feat/player-ladders
-git add -p                       # review what you stage
+git add -p
 git commit -m "Add ladder climbing"
 git pull --rebase origin main
-git push -u origin feat/player-ladders   # then open a PR
+git push -u origin feat/player-ladders
 ```
 
----
+## Security, privacy, and responsible AI
 
-## Level Map Format
+- Never commit passwords, tokens, API keys, personal data, or private files. Report accidental exposure promptly and rotate affected credentials.
+- Use two-factor authentication and reviewed pull requests. Keep repository access limited to collaborators.
+- Treat map files as untrusted input. Validate dimensions, characters, and array bounds; check asset loads and release allocated memory.
+- Use the agreed SFML version and avoid unreviewed third-party code.
+- AI tools may support planning, explanation, or review, but contributors must read, test, and understand suggestions, follow course academic-integrity rules, and disclose assistance when required. Never share credentials, private data, or unreleased course materials with AI tools.
+- Use and credit assets in accordance with their licenses and the course requirements.
 
-Each level is a text file in `levels/`. A level is **14 rows tall**, and each screen is **18 columns wide**; screens are laid side by side.
+## Milestones and open decisions
 
-| Char | Meaning |
-|---|---|
-| `.` | empty |
-| `#` | solid block |
-| `=` | horizontal girder |
-| `\|` | vertical girder |
-| `c` | crumbling girder |
-| `H` | ladder |
-| `v` | vine |
-| `~` | water |
+- [ ] **M0 — Foundation:** repository setup, starter split, bug fixes, Makefile, and agreed interfaces
+- [ ] **M1 — Walking skeleton:** movement, jumping, ducking, flip-screen, and one whip-defeated enemy
+- [ ] **M2 — Level 1:** ladders, girders, enemies, weapons, HUD, score, and time bonus
+- [ ] **M3 — Level 2:** leopards, shooters, warriors, and power-ups
+- [ ] **M4 — Level 3:** waterfall, vines, fish, and mixed enemies
+- [ ] **M5 — Polish:** menus, win/game-over states, perfect-run bonus, audio, and bug bash
 
-> Update this legend when new tiles are added. Use `.` rather than spaces for empty cells so maps stay readable and diff-friendly.
+Record decisions in `docs/PLAN.md`, including enemy/player health and damage, lives, double-jump and time-dilation rules, spawn timing, and details from reference gameplay. Add milestone dates when agreed. Keep behavior data-driven where practical because Phase 2 requirements may change.
 
----
+## Credits
 
-## Security, Privacy & Responsible AI
-
-- **No secrets or personal data in the repo.** No passwords, tokens, API keys, personal files or contact details are ever committed. If something sensitive is committed by accident, tell the team immediately and rotate or remove it (deleting a file in a later commit does not remove it from history).
-- **Accounts:** GitHub accounts use two-factor authentication. The repo is **private** and only the collaborators listed above have access.
-- **Access control:** `main` is branch-protected, and changes come in through reviewed pull requests.
-- **Memory safety is a security practice.** Out-of-bounds array access and leaks are real vulnerability classes. We bounds-check every array and grid access, free what we allocate, and develop with address/UB sanitizers enabled.
-- **Input handling:** map files are treated as untrusted input. The loader validates dimensions and characters and fails safely with a clear message, never by overrunning a buffer.
-- **Dependencies:** SFML is installed from the distribution package, at the single agreed version. No unknown third-party code is copied in.
-- **Responsible use of AI:**
-  - AI tools may help us plan, explain concepts and review code, but we **do not submit code we cannot explain**.
-  - We **read, test and understand** anything an AI suggests before committing it.
-  - We **follow the course's academic-integrity policy** on AI use and disclose AI assistance where required.
-  - We never paste private data, credentials or unreleased course material into AI tools.
-- **Assets and licensing:** sprites and audio are used for this educational project only, credited below.
-
----
-
-## Milestones
-
-Put real dates next to these.
-
-- [ ] **M0 Foundation:** repo, starter split into files, bug fixes, Makefile, shared headers agreed
-- [ ] **M1 Walking skeleton:** player moves, jumps and ducks; flip-screen works; one enemy killed by the whip
-- [ ] **M2 Level 1 complete:** ladders, all girder types, 3 enemy types, 3 weapons, HUD, scoring, time bonus
-- [ ] **M3 Level 2 complete:** leopards, shooters, warriors, power-ups
-- [ ] **M4 Level 3 complete:** waterfall, vines, fish, mixed enemy counts
-- [ ] **M5 Polish and freeze:** menu, game over and win states, perfect-run bonus, audio, bug bash
-
-Phase 2 is announced as "coming soon", so keep behavior data-driven (`config.h` and level files) and avoid hardcoding.
-
-### Open decisions (record answers in `docs/PLAN.md`)
-
-- Enemy HP for leopards, shooters, warriors and fish; whip damage
-- Player max HP and number of lives
-- How time dilation and double jump are obtained, and the exact double-jump energy rule
-- Exact meaning of "spawn sequentially but randomly (in their order)"
-- Details taken from the reference gameplay videos (crumbling girder timing, whip range, ladder behavior)
-
----
-
-## Assets & Credits
-
-- Sprites: [The Spriters Resource](https://www.spriters-resource.com/) and the files supplied with the course PDF
-- Green-screen removal and audio conversion (`.mp3` to `.ogg`) done with the tools linked in the course helper document
-- Built with [SFML](https://www.sfml-dev.org/) 2.6
-- Game concept and reference gameplay: provided by the course (CS-1002, Fall 2026)
+- Sprites: [The Spriters Resource](https://www.spriters-resource.com/) and assets supplied with the course PDF
+- SFML: [SFML](https://www.sfml-dev.org/) 2.6
+- Game concept and reference gameplay: CS-1002 Programming Fundamentals, Fall 2026
+- Green-screen removal and audio conversion: tools linked in the course helper document
