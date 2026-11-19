@@ -5,6 +5,15 @@
 #include <SFML/Audio.hpp>
 #include <SFML/Window.hpp>
 
+#include "config.h"
+#include "level.h"
+#include "physics.h"
+#include "player.h"
+#include "weapons.h"
+#include "enemies.h"
+#include "powerups.h"
+#include "scores.h"
+
 
 using namespace sf;
 using namespace std;
@@ -12,60 +21,11 @@ using namespace std;
 int screen_x = 1136;
 int screen_y = 896;
 
-void display_level(RenderWindow& window, char**lvl, Texture& bgTex,Sprite& bgSprite,Texture& blockTexture,Sprite& blockSprite, const int height, const int width, const int cell_size)
-{
-	window.draw(bgSprite);
-
-	for (int i = 0; i < height; i += 1)
-	{
-		for (int j = 0; j < width; j += 1)
-		{
-
-			if (lvl[i][j] == '#')
-			{
-				blockSprite.setPosition(j * cell_size, i * cell_size);
-				window.draw(blockSprite);
-			}
-		}
-	}
-
-}
-
-void player_gravity(char** lvl, float& offset_y, float& velocityY, bool& onGround, const float& gravity, float& terminal_Velocity, float& player_x, float& player_y, const int cell_size, int& Pheight, int& Pwidth)
-{
-	offset_y = player_y;
-
-	offset_y += velocityY;
-
-	char bottom_left_down = lvl[(int)(offset_y + Pheight) / cell_size][(int)(player_x ) / cell_size];
-	char bottom_right_down = lvl[(int)(offset_y  + Pheight) / cell_size][(int)(player_x + Pwidth) / cell_size];
-	char bottom_mid_down = lvl[(int)(offset_y + Pheight) / cell_size][(int)(player_x + Pwidth / 2) / cell_size];
-
-	if (bottom_left_down == '#' || bottom_mid_down == '#' || bottom_right_down == '#')
-	{
-		onGround = true;
-	}
-	else
-	{
-		player_y = offset_y;
-		onGround = false;
-	}
-
-	if (!onGround)
-	{
-		velocityY += gravity;
-		if (velocityY >= terminal_Velocity) velocityY = terminal_Velocity;
-	}
-
-	else
-	{
-		velocityY = 0;
-	}
-}
+void display_level(RenderWindow& window, char**lvl, Texture& bgTex,Sprite& bgSprite,Texture& blockTexture,Sprite& blockSprite, const int height, const int width, const int cell_size);
+void player_gravity(char** lvl, float& offset_y, float& velocityY, bool& onGround, const float& gravity, float& terminal_Velocity, float& player_x, float& player_y, const int cell_size, int& Pheight, int& Pwidth);
 
 
-int main()
-{
+int main(){
 
 	RenderWindow window(VideoMode(screen_x, screen_y), "VICE: Project Doom", Style::Resize);
 	window.setVerticalSyncEnabled(true);
@@ -87,7 +47,7 @@ int main()
 	bgSprite.setTexture(bgTex);
 	bgSprite.setPosition(0,0);
 
-	blockTexture.loadFromFile("Data/block1.png");
+	blockTexture.loadFromFile("data/block1.png");
 	blockSprite.setTexture(blockTexture);
 
 	//Music initialisation
@@ -128,6 +88,9 @@ int main()
 	for (int i = 0; i < height; i += 1)
 	{
 		lvl[i] = new char[width];
+		for(int j = 0; j < width; j++){
+			lvl[i][j] = '.';
+		}
 	}
 
 	for (int j = 0; j < width; j += 1)
@@ -178,4 +141,55 @@ int main()
 	delete[] lvl;
 
 	return 0;
+}
+
+void display_level(RenderWindow& window, char**lvl, Texture& bgTex,Sprite& bgSprite,Texture& blockTexture,Sprite& blockSprite, const int height, const int width, const int cell_size)
+{
+	window.draw(bgSprite);
+
+	for (int i = 0; i < height; i += 1)
+	{
+		for (int j = 0; j < width; j += 1)
+		{
+
+			if (lvl[i][j] == '#')
+			{
+				blockSprite.setPosition(j * cell_size, i * cell_size);
+				window.draw(blockSprite);
+			}
+		}
+	}
+
+}
+
+void player_gravity(char** lvl, float& offset_y, float& velocityY, bool& onGround, const float& gravity, float& terminal_Velocity, float& player_x, float& player_y, const int cell_size, int& Pheight, int& Pwidth)
+{
+	offset_y = player_y;
+
+	offset_y += velocityY;
+
+	char bottom_left_down = lvl[(int)(offset_y + Pheight) / cell_size][(int)(player_x ) / cell_size];
+	char bottom_right_down = lvl[(int)(offset_y  + Pheight) / cell_size][(int)(player_x + Pwidth) / cell_size];
+	char bottom_mid_down = lvl[(int)(offset_y + Pheight) / cell_size][(int)(player_x + Pwidth / 2) / cell_size];
+
+	if (bottom_left_down == '#' || bottom_mid_down == '#' || bottom_right_down == '#')
+	{
+		onGround = true;
+	}
+	else
+	{
+		player_y = offset_y;
+		onGround = false;
+	}
+
+	if (!onGround)
+	{
+		velocityY += gravity;
+		if (velocityY >= terminal_Velocity) velocityY = terminal_Velocity;
+	}
+
+	else
+	{
+		velocityY = 0;
+	}
 }
