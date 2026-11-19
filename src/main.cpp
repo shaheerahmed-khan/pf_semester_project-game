@@ -5,6 +5,7 @@
 #include <SFML/Audio.hpp>
 #include <SFML/Window.hpp>
 
+
 using namespace sf;
 using namespace std;
 
@@ -82,7 +83,7 @@ int main()
 	Texture blockTexture;
 	Sprite blockSprite;
 
-	bgTex.loadFromFile("Data/bg.png");
+	bgTex.loadFromFile("levels/bg.png");
 	bgSprite.setTexture(bgTex);
 	bgSprite.setPosition(0,0);
 
@@ -92,7 +93,7 @@ int main()
 	//Music initialisation
 	Music lvlMusic;
 
-	lvlMusic.openFromFile("Data/mus.ogg");
+	lvlMusic.openFromFile("data/mus.ogg");
 	lvlMusic.setVolume(20);
 	lvlMusic.play();
 	lvlMusic.setLoop(true);
@@ -116,7 +117,7 @@ int main()
 	int PlayerHeight = 96;
 	int PlayerWidth = 54;
 
-	PlayerTexture.loadFromFile("Data/player.png");
+	PlayerTexture.loadFromFile("data/player.png");
 	PlayerSprite.setTexture(PlayerTexture);
 	PlayerSprite.setScale(3,3);
 	PlayerSprite.setPosition(player_x, player_y);
