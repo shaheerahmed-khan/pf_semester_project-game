@@ -119,6 +119,14 @@ int main() {
   init_enemies(enemyActive, enemyType, enemyX, enemyY, enemyVX, enemyVY,
                enemyHP, enemyDir, enemyState, enemyTimer);
 
+  // shooter bullet data
+  bool bulletActive[MAX_ENEMY_PROJECTILES];
+  float bulletX[MAX_ENEMY_PROJECTILES];
+  float bulletY[MAX_ENEMY_PROJECTILES];
+  float bulletVX[MAX_ENEMY_PROJECTILES];
+
+  init_enemy_projectiles(bulletActive, bulletX, bulletY, bulletVX);
+
   int playerHealth = PLAYER_START_HEALTH;
   int invulnTimer = 0;
 
@@ -153,34 +161,62 @@ int main() {
         window.close();
       }
 
-      // press 1 to spawn a Spiked Crawler
-      if (ev.type == Event::KeyPressed && ev.key.code == Keyboard::Num1) {
+      // press 1 to 7 to spawn an enemy:
+      // 1 Crawler, 2 Jumper, 3 Insect, 4 Leopard, 5 Shooter, 6 Tribal, 7 Fish
+      if (ev.type == Event::KeyPressed && ev.key.code >= Keyboard::Num1 &&
+          ev.key.code <= Keyboard::Num7) {
+        int newType = ev.key.code - Keyboard::Num1;
+        float spawn_x = 100;
+        float spawn_y = 100;
+
+        if (newType == ENEMY_INSECT)
+          spawn_y = 300;
+        if (newType == ENEMY_FISH) {
+        
+          spawn_x = 600;
+          spawn_y = 700;
+        }
+
         spawn_enemy(enemyActive, enemyType, enemyX, enemyY, enemyVX, enemyVY,
-                    enemyHP, enemyDir, enemyState, enemyTimer, ENEMY_CRAWLER,
-                    100, 100);
+                    enemyHP, enemyDir, enemyState, enemyTimer, newType, spawn_x,
+                    spawn_y);
       }
     }
 
     window.clear();
 
     display_level(window, lvl, bgSprite, blockSprite, height, width, cell_size);
+
+    // the enemies aim at the middle of the player
+    float target_x = player_x + PlayerWidth / 2.0f;
+    float target_y = player_y + PlayerHeight / 2.0f;
+
     update_enemies(enemyActive, enemyType, enemyX, enemyY, enemyVX, enemyVY,
-                   enemyHP, enemyDir, enemyState, enemyTimer, lvl, height,
+                   enemyHP, enemyDir, enemyState, enemyTimer, bulletActive,
+                   bulletX, bulletY, bulletVX, target_x, target_y, lvl, height,
                    width, cell_size);
+    update_enemy_projectiles(bulletActive, bulletX, bulletY, bulletVX, lvl,
+                             height, width, cell_size);
     draw_enemies(window, enemySprite, enemyActive, enemyType, enemyX, enemyY);
+    draw_enemy_projectiles(window, enemySprite, bulletActive, bulletX, bulletY);
     player_gravity(lvl, velocityY, onGround, gravity, terminal_Velocity,
                    player_x, player_y, cell_size, PlayerHeight, PlayerWidth,
                    height, width);
     PlayerSprite.setPosition(player_x, player_y);
     window.draw(PlayerSprite);
 
-    // enemy touching the player
+    // enemy or enemy bullet touching the player
     if (invulnTimer > 0) {
       invulnTimer--;
     }
     int touchDamage =
         enemy_damage_on_contact(enemyActive, enemyType, enemyX, enemyY,
                                 player_x, player_y, PlayerWidth, PlayerHeight);
+    if (touchDamage == 0) {
+      touchDamage = enemy_projectile_damage_on_contact(
+          bulletActive, bulletX, bulletY, player_x, player_y, PlayerWidth,
+          PlayerHeight);
+    }
     if (touchDamage > 0 && invulnTimer == 0) {
       playerHealth -= touchDamage;
       invulnTimer = PLAYER_VULN_FRAMES;
