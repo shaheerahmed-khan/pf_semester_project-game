@@ -47,6 +47,7 @@ char** load_level(const char* path, int& height, int& width, float& start_x, flo
 
 
     /*
+    step 2: making a 2d array and filling it with empty cells
     Now that we know the size, we create a 2d array 
     and fill every cell with '.' (empty)
     We dont leave cells uninitialized becuse then theyll hold garbage values
@@ -62,15 +63,33 @@ char** load_level(const char* path, int& height, int& width, float& start_x, flo
             }
     }            
 
-    
-    
+    /*
+    Step 3: filling the 2d array with the level data from the file
+    copy each character into the array, restarting
+    */
+   //reset the "reach the end" flag
+    file.clear();
+    //move back to beginning of file
+    file.seekg(0);
+
+    for (int i=0; i<height; i++)
+    {
+            getline(file, line);
+            for (int j=0; j<width && j<(int)line.length(); j++)
+            {
+                    level[i][j]=line[j];
+                    if (line[j]=='P')
+                        {
+                          start_x=j*64;
+                          start_y=(i+1)*64-96;
+                          level[i][j]='.';
+                        }
+            }
+    }
 
 
 
 
 
-
-
-
-      return nullptr; 
+      return level; 
 }
