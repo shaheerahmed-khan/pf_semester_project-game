@@ -1,0 +1,16 @@
+atlas level3.png  cell 64px  8 columns
+index	char	behaviour	meaning
+0	#	solid	solid block
+1	=	oneway	one-way platform
+2	H	ladder	ladder (not solid, climbable)
+3	C	crumble	crumbling girder
+4	V	vine	hanging vine (swingable, destructible)
+5	v	vine_dead	burnt vine, grows back
+6	>	belt_r	conveyor pushing right
+7	<	belt_l	conveyor pushing left
+8	}	current_r	water current pushing right
+9	{	current_l	water current pushing left
+10	W	waterfall	downward water, forces crouch
+11	Z	electric	toggling electric bar
+12	T	trap	booby trap tile (spawns Brute)
+13	.	empty	empty cell
