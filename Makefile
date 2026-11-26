@@ -1,23 +1,29 @@
-vice-project-doom: main.o enemies.o level.o player.o powerups.o scores.o
-	g++ main.o enemies.o level.o player.o powerups.o scores.o -o vice-project-doom -lsfml-graphics -lsfml-audio -lsfml-window -lsfml-system
+CXX ?= g++
+CXXFLAGS ?= -std=c++17 -Wall -Wextra
+LDFLAGS ?= -lsfml-graphics -lsfml-window -lsfml-system
 
-main.o: src/main.cpp
-	g++ -c src/main.cpp
+ifeq ($(OS),Windows_NT)
+EXE := .exe
+else
+EXE :=
+endif
 
-enemies.o: src/enemies.cpp
-	g++ -c src/enemies.cpp
+TARGET := vice-project-doom$(EXE)
+SRC := src/main.cpp src/enemies.cpp src/level.cpp src/player.cpp src/physics.cpp
+OBJ := $(SRC:.cpp=.o)
 
-level.o: src/level.cpp
-	g++ -c src/level.cpp
+.PHONY: all clean run
 
-player.o: src/player.cpp
-	g++ -c src/player.cpp
+all: $(TARGET)
 
-powerups.o: src/powerups.cpp
-	g++ -c src/powerups.cpp
+$(TARGET): $(OBJ)
+	$(CXX) $(OBJ) -o $(TARGET) $(LDFLAGS)
 
-scores.o: src/scores.cpp
-	g++ -c src/scores.cpp
+src/%.o: src/%.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+run: $(TARGET)
+	./$(TARGET)
 
 clean:
-	rm -rf *.o vice-project-doom
+	rm -f $(OBJ) $(TARGET)

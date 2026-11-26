@@ -1,19 +1,22 @@
-#ifndef physics
-#define physics .h
-#include <SFML/Graphics.hpp>
+#ifndef PHYSICS_H
+#define PHYSICS_H
 
-#include "config.h"
-// make thes player fall faster each frame
-void apply_gravity(float& vertical_speed);
+// Pushes a vertical speed toward terminal velocity. The gravity and terminal
+// values are supplied by main so this file owns no global constants.
+void apply_gravity(float &vertical_speed, float gravity, float terminal_velocity);
 
-bool move_with_collison(char** level_grid, int level_height_in_tiles, int level_with_in_tiles,
-                        float box_x, float box_y, float box_width, float box_height,
-                        float& velocity_x, float& velocity_y, bool& on_Ground);
-void move_with_collision(char** level_grid, int level_height_in_tiles, int level_width_in_tiles,
-                         float& box_x, float& box_y, float box_width, float box_height,
-                         float& horizontal_speed, float& vertical_speed, bool& is_on_ground)
+// True when the box overlaps any solid tile in the level grid.
+bool collides_with_solid(char **level_grid, int level_height, int level_width,
+                         float box_x, float box_y, float box_width,
+                         float box_height, int cell_size,
+                         float collision_eps);
 
-    bool rectangles_overlap(float x1, float y1, float width1, float height1, float x2, float y2,
-                            float width2, float height2);
+// Moves the box one step, stopping it at solid tiles. Sets is_on_ground when a
+// downward move lands on a floor.
+void move_with_collision(char **level_grid, int level_height, int level_width,
+                         float &box_x, float &box_y, float box_width,
+                         float box_height, float &horizontal_speed,
+                         float &vertical_speed, bool &is_on_ground,
+                         int cell_size, float collision_eps);
 
 #endif

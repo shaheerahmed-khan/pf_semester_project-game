@@ -2,66 +2,54 @@
 
 #include "physics.h"
 
-void update_player(float& player_x, float& player_y, float& velocity_x, float& velocity_y,
-                   bool& on_Ground, int& facing, float speed_Multiplier, char** lvl, int height,
-                   int width) {
+void update_player(float &player_x, float &player_y, float &velocity_x,
+                   float &velocity_y, bool &on_ground, int &facing,
+                   bool move_right, bool jump_pressed, float speed,
+                   float jump_speed, int player_width, int player_height,
+                   char **lvl, int height, int width, int cell_size,
+                   float gravity, float terminal_velocity,
+                   float collision_eps) {
     velocity_x = 0;
-    float speed = PLAYER_SPEED * speed_Multiplier;
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) ||
-        sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-        velocity_x = -speed;
-        facing = -1;
-    }
-
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) ||
-        sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
+    if (move_right) {
         velocity_x = speed;
         facing = 1;
     }
 
-    bool jump_key = sf::Keyboard::isKeyPressed(sf::Keyboard::W) ||
-                    sf::Keyboard::isKeyPressed(sf::Keyboard::Up) ||
-                    sf::Keyboard::isKeyPressed(sf::Keyboard::Space);
-
-    if (jump_key && on_Ground) {
-        velocity_y = -JUMP_SPEED;  // -20: shoots upward
+    if (jump_pressed && on_ground) {
+        velocity_y = -jump_speed;
     }
 
-    apply_gravity(velocity_y);
-    void move_with_collision(char** level_grid, int level_height_in_tiles, int level_width_in_tiles,
-                             float& box_x, float& box_y, float box_width, float box_height,
-                             float& horizontal_speed, float& vertical_speed, bool& is_on_ground);
+    apply_gravity(velocity_y, gravity, terminal_velocity);
+    move_with_collision(lvl, height, width, player_x, player_y, player_width,
+                        player_height, velocity_x, velocity_y, on_ground,
+                        cell_size, collision_eps);
 }
 
-void respawn_player(float& player_x, float& player_y, float& velocity_x, float& velocity_y,
-                    float start_x, float start_y) {
+void respawn_player(float &player_x, float &player_y, float &velocity_x,
+                    float &velocity_y, bool &on_ground, float start_x,
+                    float start_y) {
     player_x = start_x;
     player_y = start_y;
     velocity_x = 0;
     velocity_y = 0;
+    on_ground = false;
 }
 
-bool player_fell_off_map(float y, int height) {
-    return y > height * CELL_SIZE;
+bool player_fell_off_map(float y, int height, int cell_size) {
+    return y > height * cell_size;
 }
 
-void draw_player(sf::RenderWindow& window, sf::Sprite& sprite, float x, float y, int facing) {
-    // no usable picture -> draw a green box so you can still test
-    if (sprite.getTexture() == nullptr || sprite.getTexture()->getSize().x == 0) {
-        sf::RectangleShape box(sf::Vector2f(PLAYER_WIDTH, PLAYER_HEIGHT));
-        box.setFillColor(sf::Color::Green);
-        box.setPosition(x, y);
-        window.draw(box);
-        return;
-    }
-
-    if (facing == 1) {
-        sprite.setScale(PLAYER_SCALE, PLAYER_SCALE);
-        sprite.setPosition(x, y);
+void draw_player(sf::RenderWindow &window, sf::Sprite &sprite, float player_x,
+                 float player_y, int facing, int player_scale,
+                 int player_width) {
+    if (facing >= 0) {
+        sprite.setScale((float)player_scale, (float)player_scale);
+        sprite.setPosition(player_x, player_y);
     } else {
-        sprite.setScale(-PLAYER_SCALE, PLAYER_SCALE);  // negative = flipped
-        sprite.setPosition(x + PLAYER_WIDTH, y);
+        sprite.setScale((float)-player_scale, (float)player_scale);
+        sprite.setPosition(player_x + player_width, player_y);
     }
+
     window.draw(sprite);
 }

@@ -1,0 +1,4 @@
+*.o
+src/*.o
+vice-project-doom
+vice-project-doom.exe
