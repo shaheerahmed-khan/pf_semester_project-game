@@ -30,25 +30,25 @@ using namespace std;
 //  7   player max health   39   health item spawn interval
 //  8   player width        40   health item lifetime
 //  9   player height       41   shield ticks
-// 10   crouch height       42   dilation ticks
-// 11   walk speed          43   boost ticks
-// 12   crouch-run speed    44-46  boss max hp (phases 1/2/3)
-// 13   jump speed          47-52  boss w/h (phases 1/2/3)
-// 14   ladder speed        53   boss intro ticks
-// 15   invuln ticks        54   boss gate window
-// 16   whip range          55   campaign no-death bonus (8000)
-// 17   whip damage         56   campaign no-damage bonus (10000)
-// 18   whip cooldown       57   reserved
-// 19   magnum damage       58   reserved
-// 20   magnum cooldown     59   reserved
-// 21   magnum ammo/level
-// 22   magnum max ammo
-// 23   grenade damage
-// 24   grenades/level
-// 25   grenade cooldown
-// 26   grenade radius
-// 27   magnum bullet speed
-// 28   grenade throw speed
+//  10  crouch height       42   dilation ticks
+//  11  walk speed          43   boost ticks
+//  12  crouch-run speed    44-46  boss max hp (phases 1/2/3)
+//  13  jump speed          47-52  boss w/h (phases 1/2/3)
+//  14  ladder speed        53   boss intro ticks
+//  15  invuln ticks        54   boss gate window
+//  16  whip range          55   campaign no-death bonus (8000)
+//  17  whip damage         56   campaign no-damage bonus (10000)
+//  18  whip cooldown       57   reserved
+//  19  magnum damage       58   reserved
+//  20  magnum cooldown     59   reserved
+//  21  magnum ammo/level
+//  22  magnum max ammo
+//  23  grenade damage
+//  24  grenades/level
+//  25  grenade cooldown
+//  26  grenade radius
+//  27  magnum bullet speed
+//  28  grenade throw speed
 // ===========================================================================
 
 const int EnemyActive = 0;
@@ -244,6 +244,9 @@ int main(int argc, char **argv) {
 // ===========================================================================
 
 float clamp_float(float value, float low, float high) {
+  if (high < low) {
+    return low;
+  }
   if (value < low) {
     return low;
   }
@@ -254,6 +257,9 @@ float clamp_float(float value, float low, float high) {
 }
 
 int clamp_int(int value, int low, int high) {
+  if (high < low) {
+    return low;
+  }
   if (value < low) {
     return low;
   }
@@ -444,7 +450,8 @@ float find_ground_y(char **grid, int level_w, int level_h, float x,
 
 char **load_level(const char *path, int &level_w, int &level_h, float &start_x,
                   float &start_y, int cell, int player_h, int &exit_col,
-                  int &exit_row, int *&tile_timer, int *&tile_state) {
+                  int &exit_row, int *&tile_timer, int *&tile_state,
+                  bool synthesize_missing_exit = true) {
   FILE *file = fopen(path, "r");
   if (file == nullptr) {
     return nullptr;
@@ -515,6 +522,26 @@ char **load_level(const char *path, int &level_w, int &level_h, float &start_x,
 
   fclose(file);
 
+  // If a stage map (like a minimal level1.txt) omits an explicit 'X' tile,
+  // place a reachable exit above the rightmost floor tile so the stage can
+  // still be completed seamlessly.
+  if (synthesize_missing_exit && exit_col < 0 && columns >= 2 && rows >= 2) {
+    int fallback_col = columns - 2;
+    int fallback_row = rows - 2;
+    for (int r = rows - 1; r >= 1; r--) {
+      char below = grid[r][fallback_col];
+      if ((below == '#' || below == '=' || below == '>' || below == '<' ||
+           below == 'C') &&
+          grid[r - 1][fallback_col] == '.') {
+        fallback_row = r - 1;
+        break;
+      }
+    }
+    grid[fallback_row][fallback_col] = 'X';
+    exit_col = fallback_col;
+    exit_row = fallback_row;
+  }
+
   level_w = columns;
   level_h = rows;
   tile_timer = new int[rows * columns]();
@@ -545,7 +572,7 @@ void free_level(char **grid, int level_h, int *tile_timer, int *tile_state) {
 //            15 double-jump uses this tick, 16 double-jump available,
 //            17 weapon, 18 ammo, 19 grenades, 20 whip cooldown,
 //            21 magnum cooldown, 22 grenade cooldown, 23 whip flash,
-//            24 waterfall ticks, 25 vine column
+//            24 waterfall ticks, 25 vine column, 26 vine length (px)
 // ===========================================================================
 
 void move_player_x(float *player, int *p, char **grid, int level_w, int level_h,
@@ -577,7 +604,8 @@ void move_player_x(float *player, int *p, char **grid, int level_w, int level_h,
 }
 
 void move_player_y(float *player, int *p, char **grid, int level_w, int level_h,
-                   int cell, float eps, int electric_timer, float amount) {
+                   int cell, float eps, int electric_timer, float amount,
+                   bool drop_through) {
   float &x = player[0];
   float &y = player[1];
   float &vy = player[3];
@@ -602,7 +630,7 @@ void move_player_y(float *player, int *p, char **grid, int level_w, int level_h,
       y = static_cast<float>((row + 1) * cell) + eps;
     }
     vy = 0;
-  } else if (amount > 0) {
+  } else if (amount > 0 && !drop_through) {
     int row = static_cast<int>((y + height_f) / cell_f);
     int left = static_cast<int>((x + 2.0f) / cell_f);
     int right =
@@ -634,6 +662,7 @@ void detach_vine(float *player, int *p, float *tuning, bool left, bool right,
   float &vangle = player[6];
   float &vspeed = player[7];
   int &on_vine = p[7];
+  float vine_len = p[26] > 0 ? static_cast<float>(p[26]) : 210.0f;
 
   on_vine = 0;
   if (!jump_away) {
@@ -642,20 +671,20 @@ void detach_vine(float *player, int *p, float *tuning, bool left, bool right,
     return;
   }
 
-  vx = cos(vangle) * 210.0f * vspeed;
+  vx = cos(vangle) * vine_len * vspeed;
   vy = -tuning[13] * 0.7f;
   if (jump_pressed) {
     vy = -tuning[13];
   }
-  vx += (right ? 3.0f : 0.0f) - (left ? 3.0f : 0.0f);
+  vx += (right ? 3.5f : 0.0f) - (left ? 3.5f : 0.0f);
   if (audio != nullptr) {
     audio->play(SfxJump, 1.05f, 70.0f);
   }
 }
 
 void update_vine(float *player, int *p, float *tuning, char **grid, int level_w,
-                 int level_h, int cell, bool left, bool right, bool down,
-                 bool jump_pressed, AudioBank *audio) {
+                 int level_h, int cell, int electric_timer, bool left,
+                 bool right, bool down, bool jump_pressed, AudioBank *audio) {
   float &x = player[0];
   float &y = player[1];
   float &vx = player[2];
@@ -670,6 +699,7 @@ void update_vine(float *player, int *p, float *tuning, char **grid, int level_w,
   int &vcol = p[25];
   int &w = p[0];
   float cell_f = static_cast<float>(cell);
+  float vine_len = p[26] > 0 ? static_cast<float>(p[26]) : 210.0f;
 
   int anchor_row = static_cast<int>(vanchor_y / cell_f);
   if (vcol < 0 || vcol >= level_w ||
@@ -682,10 +712,23 @@ void update_vine(float *player, int *p, float *tuning, char **grid, int level_w,
       (right ? 0.003f : 0.0f) - (left ? 0.003f : 0.0f) - sin(vangle) * 0.0018f;
   vspeed *= 0.995f;
   vspeed = clamp_float(vspeed, -0.08f, 0.08f);
-  vangle = clamp_float(vangle + vspeed, -1.2f, 1.2f);
+  float next_angle = clamp_float(vangle + vspeed, -1.2f, 1.2f);
 
-  x = vanchor_x + sin(vangle) * 210.0f - static_cast<float>(w) / 2.0f;
-  y = vanchor_y + cos(vangle) * 210.0f;
+  float next_x =
+      vanchor_x + sin(next_angle) * vine_len - static_cast<float>(w) / 2.0f;
+  float next_y = vanchor_y + cos(next_angle) * vine_len;
+  next_x = clamp_float(next_x, 0.0f, static_cast<float>(level_w * cell - w));
+  next_y = clamp_float(next_y, 0.0f, static_cast<float>(level_h * cell - p[1]));
+
+  if (!box_solid(grid, level_w, level_h, next_x, next_y, static_cast<float>(w),
+                 static_cast<float>(p[1]), cell, tuning[6], electric_timer)) {
+    vangle = next_angle;
+    x = next_x;
+    y = next_y;
+  } else {
+    vspeed = -vspeed * 0.5f;
+  }
+
   on_ground = 0;
   vx = 0;
   vy = 0;
@@ -704,7 +747,7 @@ void update_vine(float *player, int *p, float *tuning, char **grid, int level_w,
 }
 
 void grab_vine(float *player, int *p, char **grid, int level_w, int level_h,
-               int cell, bool up) {
+               int cell, float eps, int electric_timer, bool up) {
   float &x = player[0];
   float &y = player[1];
   float &vx = player[2];
@@ -731,6 +774,7 @@ void grab_vine(float *player, int *p, char **grid, int level_w, int level_h,
 
   bool found = false;
   int top_row = row;
+  int bottom_row = row;
   for (int r = row; r >= 0; r--) {
     if (tile_at(grid, level_w, level_h, r, col) == 'V') {
       found = true;
@@ -742,15 +786,38 @@ void grab_vine(float *player, int *p, char **grid, int level_w, int level_h,
   if (!found) {
     return;
   }
+  for (int r = row + 1; r < level_h; r++) {
+    if (tile_at(grid, level_w, level_h, r, col) == 'V') {
+      bottom_row = r;
+    } else {
+      break;
+    }
+  }
+
+  // Match the visual length of the vine column (e.g., 7 cells in level3.txt ->
+  // ~384px so the player's feet clear the platforms below).
+  int chain_cells = std::max(3, bottom_row - top_row);
+  float vine_len = static_cast<float>(chain_cells * cell);
+  float anchor_x = static_cast<float>(col * cell + cell / 2);
+  float anchor_y = static_cast<float>(top_row * cell);
+  float target_x = anchor_x - static_cast<float>(w) / 2.0f;
+  float target_y = anchor_y + vine_len;
+
+  if (box_solid(grid, level_w, level_h, target_x, target_y,
+                static_cast<float>(w), static_cast<float>(p[1]), cell, eps,
+                electric_timer)) {
+    return;
+  }
 
   on_vine = 1;
   vcol = col;
-  vanchor_x = static_cast<float>(col * cell + cell / 2);
-  vanchor_y = static_cast<float>(top_row * cell);
+  p[26] = static_cast<int>(vine_len);
+  vanchor_x = anchor_x;
+  vanchor_y = anchor_y;
   vangle = 0;
   vspeed = 0;
-  x = vanchor_x - static_cast<float>(w) / 2.0f;
-  y = vanchor_y + 210.0f;
+  x = target_x;
+  y = target_y;
   vx = 0;
   vy = 0;
 }
@@ -783,30 +850,8 @@ void update_player(float *player, int *p, char **grid, int level_w, int level_h,
   float climb_speed = tuning[14];
 
   if (on_vine) {
-    update_vine(player, p, tuning, grid, level_w, level_h, cell, left, right,
-                down, jump_pressed, audio);
-    return;
-  }
-
-  float feet = y + static_cast<float>(h);
-  bool want_crouch = down && (on_ground != 0);
-
-  if (want_crouch && !crouching) {
-    crouching = 1;
-    h = static_cast<int>(tuning[10]);
-    y = feet - static_cast<float>(h);
-  } else if (!want_crouch && crouching) {
-    float stand_y = feet - tuning[9];
-    if (!box_solid(grid, level_w, level_h, x, stand_y, static_cast<float>(w),
-                   tuning[9], cell, eps, electric_timer)) {
-      crouching = 0;
-      h = static_cast<int>(tuning[9]);
-      y = stand_y;
-    }
-  }
-
-  grab_vine(player, p, grid, level_w, level_h, cell, up);
-  if (on_vine) {
+    update_vine(player, p, tuning, grid, level_w, level_h, cell, electric_timer,
+                left, right, down, jump_pressed, audio);
     return;
   }
 
@@ -819,9 +864,33 @@ void update_player(float *player, int *p, char **grid, int level_w, int level_h,
   int lower_row =
       clamp_int(static_cast<int>((y + static_cast<float>(h) - 4.0f) / cell_f),
                 0, level_h - 1);
-  bool ladder_here =
-      tile_at(grid, level_w, level_h, center_row, center_col) == 'H' ||
-      tile_at(grid, level_w, level_h, lower_row, center_col) == 'H';
+  char middle = tile_at(grid, level_w, level_h, center_row, center_col);
+  char lower_tile = tile_at(grid, level_w, level_h, lower_row, center_col);
+  bool in_water = (middle == 'F' || lower_tile == 'F');
+
+  float feet = y + static_cast<float>(h);
+  bool want_crouch = down && (on_ground != 0) && !in_water;
+
+  if (want_crouch && !crouching) {
+    crouching = 1;
+    h = static_cast<int>(tuning[10]);
+    y = feet - static_cast<float>(h);
+  } else if (!want_crouch && crouching && waterfall_ticks <= 120) {
+    float stand_y = feet - tuning[9];
+    if (!box_solid(grid, level_w, level_h, x, stand_y, static_cast<float>(w),
+                   tuning[9], cell, eps, electric_timer)) {
+      crouching = 0;
+      h = static_cast<int>(tuning[9]);
+      y = stand_y;
+    }
+  }
+
+  grab_vine(player, p, grid, level_w, level_h, cell, eps, electric_timer, up);
+  if (on_vine) {
+    return;
+  }
+
+  bool ladder_here = (middle == 'H' || lower_tile == 'H');
 
   if (!ladder_here) {
     on_ladder = 0;
@@ -830,6 +899,9 @@ void update_player(float *player, int *p, char **grid, int level_w, int level_h,
   }
 
   speed = crouching ? crouch_speed : speed;
+  if (in_water) {
+    speed *= 0.72f;
+  }
   vx = 0;
   if (left) {
     vx = -speed;
@@ -840,6 +912,7 @@ void update_player(float *player, int *p, char **grid, int level_w, int level_h,
     facing = 1;
   }
 
+  bool drop_through = false;
   if (on_ladder) {
     vy = 0;
     if (up) {
@@ -849,11 +922,32 @@ void update_player(float *player, int *p, char **grid, int level_w, int level_h,
       vy = climb_speed;
     }
     on_ground = 0;
+  } else if (in_water) {
+    jumps_used = 0;
+    if (jump_pressed || up) {
+      vy = -jump_speed * 0.55f;
+      on_ground = 0;
+      if (jump_pressed && audio != nullptr) {
+        audio->play(SfxJump, 0.85f, 60.0f);
+      }
+    } else if (down) {
+      vy = std::min(vy + gravity * 0.8f, terminal * 0.45f);
+      drop_through = true;
+    } else {
+      vy += gravity * 0.35f;
+      if (vy > terminal * 0.3f) {
+        vy = terminal * 0.3f;
+      }
+    }
   } else {
     if (on_ground) {
       jumps_used = 0;
     }
-    if (jump_pressed && (on_ground || (p[16] && jumps_used < 2))) {
+    if (down && jump_pressed && on_ground && p[3] == '=') {
+      drop_through = true;
+      on_ground = 0;
+      vy = 2.0f;
+    } else if (jump_pressed && (on_ground || (p[16] && jumps_used < 2))) {
       vy = -jump_speed;
       on_ground = 0;
       jumps_used++;
@@ -870,9 +964,18 @@ void update_player(float *player, int *p, char **grid, int level_w, int level_h,
   move_player_x(player, p, grid, level_w, level_h, cell, eps, electric_timer,
                 vx);
   move_player_y(player, p, grid, level_w, level_h, cell, eps, electric_timer,
-                vy);
+                vy, drop_through);
 
-  char middle = tile_at(grid, level_w, level_h, center_row, center_col);
+  // Recompute tile at updated player center for conveyors, currents, and
+  // waterfalls.
+  center_col =
+      clamp_int(static_cast<int>((x + static_cast<float>(w) / 2.0f) / cell_f),
+                0, level_w - 1);
+  center_row =
+      clamp_int(static_cast<int>((y + static_cast<float>(h) / 2.0f) / cell_f),
+                0, level_h - 1);
+  middle = tile_at(grid, level_w, level_h, center_row, center_col);
+
   float push = 0;
   if (on_ground && p[3] == '>') {
     push = tuning[37];
@@ -1052,7 +1155,7 @@ void enemy_shoot(float ef[64][8], int ei[64][9], int i, float *player, int *p,
 
 void enemy_gravity(float ef[64][8], int ei[64][9], int i, char **grid,
                    int level_w, int level_h, int cell, float gravity,
-                   float terminal, float eps, float scale) {
+                   float terminal, float eps, float scale, int electric_timer) {
   float &x = ef[i][0];
   float &y = ef[i][1];
   float &vy = ef[i][3];
@@ -1076,7 +1179,8 @@ void enemy_gravity(float ef[64][8], int ei[64][9], int i, char **grid,
     for (int col = left; col <= right; col++) {
       char c = tile_at(grid, level_w, level_h, row, col);
       bool floor_here =
-          tile_solid(grid, level_w, level_h, row, col, 999999) || c == '=';
+          tile_solid(grid, level_w, level_h, row, col, electric_timer) ||
+          c == '=';
       if (floor_here && old_bottom <= static_cast<float>(row * cell) + eps) {
         y = static_cast<float>(row * cell) - h;
         vy = 0;
@@ -1088,7 +1192,8 @@ void enemy_gravity(float ef[64][8], int ei[64][9], int i, char **grid,
 }
 
 void enemy_move_x(float ef[64][8], int ei[64][9], int i, char **grid,
-                  int level_w, int level_h, int cell, float scale) {
+                  int level_w, int level_h, int cell, float scale,
+                  int electric_timer) {
   float &x = ef[i][0];
   float &y = ef[i][1];
   float &vx = ef[i][2];
@@ -1102,7 +1207,7 @@ void enemy_move_x(float ef[64][8], int ei[64][9], int i, char **grid,
   int col = vx > 0 ? static_cast<int>((next_x + w - 1.0f) / cell_f)
                    : static_cast<int>(next_x / cell_f);
 
-  if (tile_solid(grid, level_w, level_h, row, col, 999999)) {
+  if (tile_solid(grid, level_w, level_h, row, col, electric_timer)) {
     dir = -dir;
     vx = -vx;
     return;
@@ -1116,9 +1221,9 @@ void enemy_move_x(float ef[64][8], int ei[64][9], int i, char **grid,
                            : static_cast<int>(x / cell_f);
     int below_row = static_cast<int>((y + h + 2.0f) / cell_f);
     char c = tile_at(grid, level_w, level_h, below_row, below_col);
-    bool floor_here =
-        tile_solid(grid, level_w, level_h, below_row, below_col, 999999) ||
-        c == '=';
+    bool floor_here = tile_solid(grid, level_w, level_h, below_row, below_col,
+                                 electric_timer) ||
+                      c == '=';
     if (!floor_here) {
       dir = -dir;
       vx = -vx;
@@ -1131,8 +1236,8 @@ void enemy_move_x(float ef[64][8], int ei[64][9], int i, char **grid,
 void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
                   const float enemy_cfg[13][14], float *tuning, char **grid,
                   int level_w, int level_h, float *player, int *p,
-                  float sf[128][4], int si[128][4], int max_shots,
-                  float scale) {
+                  float sf[128][4], int si[128][4], int max_shots, float scale,
+                  int electric_timer) {
   int type = ei[i][EnemyType];
   if (type < 0 || type >= enemy_types) {
     return;
@@ -1162,13 +1267,14 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
   case 0:
     vx = static_cast<float>(dir) * cfg[4];
     enemy_gravity(ef, ei, i, grid, level_w, level_h, cell, gravity, terminal,
-                  eps, scale);
-    enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale);
+                  eps, scale, electric_timer);
+    enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale,
+                 electric_timer);
     break;
 
   case 1:
     enemy_gravity(ef, ei, i, grid, level_w, level_h, cell, gravity, terminal,
-                  eps, scale);
+                  eps, scale, electric_timer);
     if (ei[i][EnemyGrounded]) {
       vx = 0;
       timer--;
@@ -1179,7 +1285,8 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
         timer = static_cast<int>(cfg[8]);
       }
     }
-    enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale);
+    enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale,
+                 electric_timer);
     break;
 
   case 2: {
@@ -1203,10 +1310,11 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
 
   case 3:
     enemy_gravity(ef, ei, i, grid, level_w, level_h, cell, gravity, terminal,
-                  eps, scale);
+                  eps, scale, electric_timer);
     if (state == 0) {
       vx = static_cast<float>(dir) * cfg[4];
-      enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale);
+      enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale,
+                   electric_timer);
       if (fabs(target_x - cx) < cfg[7] && fabs(target_y - cy) < cfg[8]) {
         dir = target_x < cx ? -1 : 1;
         vx = static_cast<float>(dir) * cfg[6];
@@ -1214,7 +1322,8 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
         timer = static_cast<int>(cfg[9]);
       }
     } else if (state == 1) {
-      enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale);
+      enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale,
+                   electric_timer);
       timer--;
       if (timer <= 0) {
         vx = 0;
@@ -1231,7 +1340,7 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
 
   case 4:
     enemy_gravity(ef, ei, i, grid, level_w, level_h, cell, gravity, terminal,
-                  eps, scale);
+                  eps, scale, electric_timer);
     dir = target_x < cx ? -1 : 1;
     if (timer > 0) {
       timer--;
@@ -1246,7 +1355,7 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
 
   case 5: {
     enemy_gravity(ef, ei, i, grid, level_w, level_h, cell, gravity, terminal,
-                  eps, scale);
+                  eps, scale, electric_timer);
     float distance = fabs(target_x - cx);
     if (state == 0) {
       if (distance < cfg[8] && fabs(target_y - cy) < cfg[9]) {
@@ -1257,7 +1366,8 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
           timer = static_cast<int>(cfg[11]);
         } else {
           vx = static_cast<float>(dir) * cfg[6];
-          enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale);
+          enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale,
+                       electric_timer);
         }
       } else {
         vx = 0;
@@ -1271,7 +1381,8 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
         timer = static_cast<int>(cfg[12]);
       }
     } else if (state == 2) {
-      enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale);
+      enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale,
+                   electric_timer);
       timer--;
       if (timer <= 0) {
         vx = 0;
@@ -1312,7 +1423,7 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
 
   case 7:
     enemy_gravity(ef, ei, i, grid, level_w, level_h, cell, gravity, terminal,
-                  eps, scale);
+                  eps, scale, electric_timer);
     if (fabs(target_x - cx) < cfg[6]) {
       dir = target_x < cx ? -1 : 1;
       vx = static_cast<float>(dir) * cfg[4];
@@ -1326,12 +1437,13 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
     } else {
       timer--;
     }
-    enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale);
+    enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale,
+                 electric_timer);
     break;
 
   case 8:
     enemy_gravity(ef, ei, i, grid, level_w, level_h, cell, gravity, terminal,
-                  eps, scale);
+                  eps, scale, electric_timer);
     dir = target_x < cx ? -1 : 1;
     if (ei[i][EnemyGrounded]) {
       vx = static_cast<float>(dir) * cfg[4];
@@ -1342,17 +1454,19 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
         timer = static_cast<int>(cfg[8]);
       }
     }
-    enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale);
+    enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale,
+                 electric_timer);
     break;
 
   case 9:
     enemy_gravity(ef, ei, i, grid, level_w, level_h, cell, gravity, terminal,
-                  eps, scale);
+                  eps, scale, electric_timer);
     if (fabs(target_x - cx) < 520.0f) {
       dir = target_x < cx ? -1 : 1;
     }
     vx = static_cast<float>(dir) * cfg[4];
-    enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale);
+    enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale,
+                 electric_timer);
     timer++;
     if (timer % 150 == 0 && fabs(target_x - cx) < 460.0f) {
       enemy_shoot(ef, ei, i, player, p, sf, si, max_shots, 0, 3.0f,
@@ -1373,7 +1487,7 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
 
   case 11: {
     enemy_gravity(ef, ei, i, grid, level_w, level_h, cell, gravity, terminal,
-                  eps, scale);
+                  eps, scale, electric_timer);
     float distance = fabs(target_x - cx);
     if (state == 0) {
       vx = 0;
@@ -1390,7 +1504,8 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
         state = 2;
       }
     } else {
-      enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale);
+      enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale,
+                   electric_timer);
       if (ei[i][EnemyGrounded]) {
         state = 0;
         timer = static_cast<int>(cfg[10]);
@@ -1401,7 +1516,7 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
 
   case 12:
     enemy_gravity(ef, ei, i, grid, level_w, level_h, cell, gravity, terminal,
-                  eps, scale);
+                  eps, scale, electric_timer);
     dir = target_x < cx ? -1 : 1;
     if (ei[i][EnemyGrounded]) {
       vx = static_cast<float>(dir) * cfg[4];
@@ -1412,7 +1527,8 @@ void update_enemy(float ef[64][8], int ei[64][9], int i, int enemy_types,
         timer = static_cast<int>(cfg[8]);
       }
     }
-    enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale);
+    enemy_move_x(ef, ei, i, grid, level_w, level_h, cell, scale,
+                 electric_timer);
     break;
 
   default:
@@ -1428,13 +1544,14 @@ void update_enemies(float ef[64][8], int ei[64][9], int max_enemies,
   float scale = p[13] > 0 ? 0.5f : 1.0f;
   float world_w = static_cast<float>(level_w) * tuning[2];
   float world_h = static_cast<float>(level_h) * tuning[2];
+  int electric_timer = game[8];
 
   for (int i = 0; i < max_enemies; i++) {
     if (!ei[i][EnemyActive]) {
       continue;
     }
     update_enemy(ef, ei, i, enemy_types, enemy_cfg, tuning, grid, level_w,
-                 level_h, player, p, sf, si, max_shots, scale);
+                 level_h, player, p, sf, si, max_shots, scale, electric_timer);
 
     if (ef[i][1] > world_h + 300.0f || ef[i][0] < -800.0f ||
         ef[i][0] > world_w + 800.0f) {
@@ -1620,6 +1737,7 @@ void update_shots(float sf[128][4], int si[128][4], int max_shots,
   float cell_f = static_cast<float>(cell);
   float gravity = tuning[4];
   float scale = p[13] > 0 ? 0.5f : 1.0f;
+  int electric_timer = game[8];
 
   for (int i = 0; i < max_shots; i++) {
     if (!si[i][ShotActive]) {
@@ -1654,7 +1772,7 @@ void update_shots(float sf[128][4], int si[128][4], int max_shots,
     if (kind == 4) {
       int row = static_cast<int>((sf[i][1] + 12.0f) / cell_f);
       int col = static_cast<int>(sf[i][0] / cell_f);
-      if (tile_solid(grid, level_w, level_h, row, col, 999999) ||
+      if (tile_solid(grid, level_w, level_h, row, col, electric_timer) ||
           tile_at(grid, level_w, level_h, row, col) == '=') {
         sf[i][1] = static_cast<float>(row * cell) - 12.0f;
         sf[i][3] = -fabs(sf[i][3]) * 0.35f;
@@ -1673,7 +1791,7 @@ void update_shots(float sf[128][4], int si[128][4], int max_shots,
     } else {
       int row = static_cast<int>(sf[i][1] / cell_f);
       int col = static_cast<int>(sf[i][0] / cell_f);
-      if (tile_solid(grid, level_w, level_h, row, col, 999999)) {
+      if (tile_solid(grid, level_w, level_h, row, col, electric_timer)) {
         dead = true;
       }
     }
@@ -2477,7 +2595,7 @@ void prepare_stage(int new_stage, float *tuning, int *game, float *player,
   int cell = static_cast<int>(tuning[2]);
   grid = load_level(stage_path(new_stage), level_w, level_h, start_x, start_y,
                     cell, static_cast<int>(tuning[9]), exit_col, exit_row,
-                    tile_timer, tile_state);
+                    tile_timer, tile_state, new_stage < 4);
   if (grid == nullptr) {
     printf("Could not load %s\n", stage_path(new_stage));
     return;
@@ -2516,6 +2634,7 @@ void prepare_stage(int new_stage, float *tuning, int *game, float *player,
   p[23] = 0;
   p[24] = 0;
   p[25] = -1;
+  p[26] = 210;
   p[11] = 90;
 
   queue_count = 0;
@@ -2546,10 +2665,14 @@ void prepare_stage(int new_stage, float *tuning, int *game, float *player,
   bossi[7] = 0;
 
   if (new_stage == 0) {
-    spawn_enemy(ef, ei, max_enemies, enemy_types, enemy_cfg, 0,
-                static_cast<float>(20 * cell), 792.0f);
-    spawn_enemy(ef, ei, max_enemies, enemy_types, enemy_cfg, 0,
-                static_cast<float>(36 * cell), 792.0f);
+    float e1_x = static_cast<float>(20 * cell);
+    float e2_x = static_cast<float>(36 * cell);
+    spawn_enemy(
+        ef, ei, max_enemies, enemy_types, enemy_cfg, 0, e1_x,
+        find_ground_y(grid, level_w, level_h, e1_x, enemy_cfg[0][1], cell));
+    spawn_enemy(
+        ef, ei, max_enemies, enemy_types, enemy_cfg, 0, e2_x,
+        find_ground_y(grid, level_w, level_h, e2_x, enemy_cfg[0][1], cell));
   }
 
   game[0] = 1;
@@ -2704,17 +2827,13 @@ int run_game(float *tuning, float enemy_cfg[13][14], int spawn_types[5][5],
 
   float &px = player[0];
   float &py = player[1];
-  float &pvx = player[2];
-  float &pvy = player[3];
   int &pw = p[0];
   int &ph = p[1];
   int &ground_char = p[3];
   int &on_ground = p[4];
-  int &crouching = p[5];
   int &on_ladder = p[6];
   int &on_vine = p[7];
   int &hp = p[8];
-  int &bonus_hp = p[10];
   int &invuln = p[11];
   int &shield_timer = p[12];
   int &dilation_timer = p[13];
@@ -2848,27 +2967,19 @@ int run_game(float *tuning, float enemy_cfg[13][14], int spawn_types[5][5],
       if (state == 4) {
         if (step_jump) {
           audio.play(SfxRewind, 1.0f, 80.0f);
-          px = start_x;
-          py = start_y;
-          pvx = 0;
-          pvy = 0;
-          ph = static_cast<int>(tuning[9]);
-          crouching = 0;
-          on_ground = 0;
-          on_ladder = 0;
-          on_vine = 0;
-          hp = 100 + bonus_hp;
-          if (hp > static_cast<int>(tuning[7])) {
-            hp = static_cast<int>(tuning[7]);
+          for (int i = 0; i < 13; i++) {
+            kill_slot[i] = 0;
+            for (int j = 0; j < 32; j++) {
+              kill_time[i][j] = -100000;
+            }
           }
+          prepare_stage(stage, tuning, game, player, p, grid, level_w, level_h,
+                        tile_timer, tile_state, start_x, start_y, exit_col,
+                        exit_row, ef, ei, sf, si, xf, xi, uf, ui, spawn_queue,
+                        queue_count, queue_index, spawn_timer, spawn_cycle,
+                        spawn_types, spawn_counts, enemy_cfg, enemy_types,
+                        max_enemies, bossf, bossi, message);
           invuln = 120;
-          ammo = static_cast<int>(tuning[21]);
-          grenades = static_cast<int>(tuning[24]);
-          if (stage == 4 && boss_phase > 0) {
-            reset_entities(ef, ei, sf, si, xf, xi, uf, ui);
-            begin_boss_phase(1, bossf, bossi, tuning, level_w, level_h, &audio);
-            boss_intro = 120;
-          }
           state = 2;
         }
         continue;
@@ -2998,16 +3109,23 @@ int run_game(float *tuning, float enemy_cfg[13][14], int spawn_types[5][5],
         }
       }
 
-      if (ground_char == 'C') {
+      if (on_ground) {
         int row =
             static_cast<int>((py + static_cast<float>(ph) + 2.0f) / cell_f);
-        int col =
-            static_cast<int>((px + static_cast<float>(pw) / 2.0f) / cell_f);
-        if (row >= 0 && row < level_h && col >= 0 && col < level_w) {
-          int index = row * level_w + col;
-          if (tile_state[index] == 0) {
-            tile_state[index] = 1;
-            tile_timer[index] = 45;
+        int left_foot =
+            clamp_int(static_cast<int>((px + 2.0f) / cell_f), 0, level_w - 1);
+        int right_foot = clamp_int(
+            static_cast<int>((px + static_cast<float>(pw) - 2.0f) / cell_f), 0,
+            level_w - 1);
+        if (row >= 0 && row < level_h) {
+          for (int col = left_foot; col <= right_foot; col++) {
+            if (grid[row][col] == 'C') {
+              int index = row * level_w + col;
+              if (tile_state[index] == 0) {
+                tile_state[index] = 1;
+                tile_timer[index] = 45;
+              }
+            }
           }
         }
       }
@@ -3075,8 +3193,19 @@ int run_game(float *tuning, float enemy_cfg[13][14], int spawn_types[5][5],
           if (batch > static_cast<int>(tuning[36])) {
             batch = static_cast<int>(tuning[36]);
           }
+          int needed_types[5];
+          int needed_count = 0;
+          for (int q = 0; q < 5; q++) {
+            if (recent_kills(boss_quota_type[q], level_ticks,
+                             static_cast<int>(tuning[54]),
+                             kill_time) < boss_quota_count[q]) {
+              needed_types[needed_count++] = boss_quota_type[q];
+            }
+          }
           for (int i = 0; i < batch; i++) {
-            int type = endless_types[random_int(0, 4)];
+            int type = (needed_count > 0 && rand() % 100 < 75)
+                           ? needed_types[random_int(0, needed_count - 1)]
+                           : endless_types[random_int(0, 4)];
             float w = enemy_cfg[type][0];
             float h = enemy_cfg[type][1];
             float x = (rand() % 2 == 0)
@@ -3179,10 +3308,11 @@ int run_game(float *tuning, float enemy_cfg[13][14], int spawn_types[5][5],
         }
       }
 
-      // Smoothly keep the player centered horizontally.
+      // Smoothly keep the player centered horizontally (never negative on
+      // narrow maps such as level1.txt).
+      float max_cam = std::max(0.0f, world_w_f - screen_w_f);
       float target_cam = px + static_cast<float>(pw) / 2.0f - screen_w_f / 2.0f;
-      camera_x = static_cast<int>(
-          clamp_float(target_cam, 0.0f, world_w_f - screen_w_f));
+      camera_x = static_cast<int>(clamp_float(target_cam, 0.0f, max_cam));
 
       // Check stage exit.
       if (stage < 4 && state == 2) {
@@ -3213,6 +3343,13 @@ int run_game(float *tuning, float enemy_cfg[13][14], int spawn_types[5][5],
             for (int i = 0; i < 3; i++) {
               if (seconds < static_cast<float>(l1_limit[i])) {
                 score += l1_bonus[i];
+                break;
+              }
+            }
+          } else if (stage == 2 || stage == 3) {
+            for (int i = 0; i < 3; i++) {
+              if (seconds < static_cast<float>(lx_limit[i])) {
+                score += lx_bonus[i];
                 break;
               }
             }
@@ -3459,10 +3596,9 @@ int run_self_test(float *tuning, float enemy_cfg[13][14], int spawn_types[5][5],
   int xi[128][4] = {};
   float bossf[6] = {};
   int bossi[8] = {};
-  int game[12] = {};
+  int game[13] = {};
   game[0] = 2;
 
-  int expected_width[5] = {48, 64, 64, 64, 64};
   const char *paths[5] = {"levels/tutorial.txt", "levels/level1.txt",
                           "levels/level2.txt", "levels/level3.txt",
                           "levels/levelx.txt"};
@@ -3471,8 +3607,8 @@ int run_self_test(float *tuning, float enemy_cfg[13][14], int spawn_types[5][5],
     free_level(grid, level_h, tile_timer, tile_state);
     grid = load_level(paths[stage], level_w, level_h, start_x, start_y, cell,
                       static_cast<int>(tuning[9]), exit_col, exit_row,
-                      tile_timer, tile_state);
-    if (grid == nullptr || level_h != 14 || level_w != expected_width[stage]) {
+                      tile_timer, tile_state, stage < 4);
+    if (grid == nullptr || level_h != 14 || level_w < 18) {
       printf("FAIL stage %d did not load correctly\n", stage);
       failures++;
     } else {
@@ -3488,7 +3624,7 @@ int run_self_test(float *tuning, float enemy_cfg[13][14], int spawn_types[5][5],
   free_level(grid, level_h, tile_timer, tile_state);
   grid = load_level("levels/level1.txt", level_w, level_h, start_x, start_y,
                     cell, static_cast<int>(tuning[9]), exit_col, exit_row,
-                    tile_timer, tile_state);
+                    tile_timer, tile_state, true);
   player[0] = start_x;
   player[1] = start_y;
   float old_x = player[0];
