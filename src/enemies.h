@@ -20,8 +20,10 @@ void update_enemies(bool *active, int *type, float *x, float *y,
                     float target_x, float target_y, char **lvl,
                     const int height, const int width, const int cell_size);
 
+// enemy_textures has one texture per enemy type, indexed by the ENEMY_* value
 void draw_enemies(sf::RenderWindow &window, sf::Sprite &enemySprite,
-                  bool *active, int *type, float *x, float *y);
+                  sf::Texture *enemy_textures, bool *active, int *type,
+                  float *x, float *y, int *direction);
 
 bool damage_enemy(bool *active, int *hp, int index, int amount);
 
@@ -39,8 +41,9 @@ void update_enemy_projectiles(bool *bullet_active, float *bullet_x,
                               const int cell_size);
 
 void draw_enemy_projectiles(sf::RenderWindow &window, sf::Sprite &enemySprite,
-                            bool *bullet_active, float *bullet_x,
-                            float *bullet_y);
+                            sf::Texture &bullet_texture, bool *bullet_active,
+                            float *bullet_x, float *bullet_y,
+                            float *bullet_velocity_x);
 
 int enemy_projectile_damage_on_contact(bool *bullet_active, float *bullet_x,
                                        float *bullet_y, float player_x,

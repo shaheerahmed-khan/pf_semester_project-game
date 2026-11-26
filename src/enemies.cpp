@@ -268,16 +268,33 @@ void update_enemy_projectiles(bool *bullet_active, float *bullet_x,
   }
 }
 
+// draws every live bullet, stretched so the picture matches the bullet's
+// hitbox. bullets flying left get flipped so they face the right way
 void draw_enemy_projectiles(RenderWindow &window, Sprite &enemySprite,
-                            bool *bullet_active, float *bullet_x,
-                            float *bullet_y) {
+                            Texture &bullet_texture, bool *bullet_active,
+                            float *bullet_x, float *bullet_y,
+                            float *bullet_velocity_x) {
+  // the true flag resets the sprite's crop to the new texture's full size,
+  // without it the sprite keeps the old texture's size and the picture gets cut
+  enemySprite.setTexture(bullet_texture, true);
+
+  float scale_x = (float)ENEMY_BULLET_WIDTH / bullet_texture.getSize().x;
+  float scale_y = (float)ENEMY_BULLET_HEIGHT / bullet_texture.getSize().y;
+
   for (int i = 0; i < MAX_ENEMY_PROJECTILES; i++) {
     if (!bullet_active[i])
       continue;
 
-    enemySprite.setScale(ENEMY_BULLET_WIDTH, ENEMY_BULLET_HEIGHT);
-    enemySprite.setPosition(bullet_x[i], bullet_y[i]);
-    enemySprite.setColor(Color::Yellow);
+    if (bullet_velocity_x[i] < 0) {
+      // a negative scale mirrors the sprite around its left edge, so we shift
+      // it right by the width to keep it sitting on the same spot
+      enemySprite.setScale(-scale_x, scale_y);
+      enemySprite.setPosition(bullet_x[i] + ENEMY_BULLET_WIDTH, bullet_y[i]);
+    } else {
+      enemySprite.setScale(scale_x, scale_y);
+      enemySprite.setPosition(bullet_x[i], bullet_y[i]);
+    }
+
     window.draw(enemySprite);
   }
 }
@@ -692,39 +709,37 @@ void update_enemies(bool *active, int *type, float *x, float *y,
   }
 }
 
-void draw_enemies(RenderWindow &window, Sprite &enemySprite, bool *active,
-                  int *type, float *x, float *y) {
+// draws every live enemy using the texture of its own type. the picture is
+// scaled to fit the enemy's hitbox, and flipped when it faces left (the art is
+// expected to face right)
+void draw_enemies(RenderWindow &window, Sprite &enemySprite,
+                  Texture *enemy_textures, bool *active, int *type, float *x,
+                  float *y, int *direction) {
   for (int i = 0; i < MAX_ENEMIES; i++) {
     if (!active[i])
       continue;
 
-    enemySprite.setScale(enemy_width(type[i]), enemy_height(type[i]));
-    enemySprite.setPosition(x[i], y[i]);
+    // safety check so a bad type number can never read outside the array
+    if (type[i] < 0 || type[i] > ENEMY_FISH)
+      continue;
 
-    switch (type[i]) {
-    case ENEMY_CRAWLER:
-      enemySprite.setColor(Color(200, 40, 40));
-      break;
-    case ENEMY_JUMPER:
-      enemySprite.setColor(Color(60, 90, 220));
-      break;
-    case ENEMY_INSECT:
-      enemySprite.setColor(Color(230, 200, 40));
-      break;
-    case ENEMY_LEOPARD:
-      enemySprite.setColor(Color(230, 130, 30));
-      break;
-    case ENEMY_SHOOTER:
-      enemySprite.setColor(Color(40, 170, 60));
-      break;
-    case ENEMY_TRIBAL:
-      enemySprite.setColor(Color(140, 90, 50));
-      break;
-    case ENEMY_FISH:
-      enemySprite.setColor(Color(60, 200, 220));
-      break;
-    default:
-      enemySprite.setColor(Color::Magenta);
+    Texture &tex = enemy_textures[type[i]];
+    enemySprite.setTexture(tex, true);
+
+    int w = enemy_width(type[i]);
+    int h = enemy_height(type[i]);
+    float scale_x = (float)w / tex.getSize().x;
+    float scale_y = (float)h / tex.getSize().y;
+
+    // the fish always keeps its starting direction, so it never gets flipped
+    bool face_left = (direction[i] < 0 && type[i] != ENEMY_FISH);
+
+    if (face_left) {
+      enemySprite.setScale(-scale_x, scale_y);
+      enemySprite.setPosition(x[i] + w, y[i]);
+    } else {
+      enemySprite.setScale(scale_x, scale_y);
+      enemySprite.setPosition(x[i], y[i]);
     }
 
     window.draw(enemySprite);
