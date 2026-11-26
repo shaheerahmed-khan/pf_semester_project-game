@@ -29,8 +29,9 @@ void update_player(float& player_x, float& player_y, float& velocity_x, float& v
     }
 
     apply_gravity(velocity_y);
-    move_with_collision(lvl, height, width, player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT,
-                        velocity_x, velocity_y, on_Ground);
+    void move_with_collision(char** level_grid, int level_height_in_tiles, int level_width_in_tiles,
+                             float& box_x, float& box_y, float box_width, float box_height,
+                             float& horizontal_speed, float& vertical_speed, bool& is_on_ground);
 }
 
 void respawn_player(float& player_x, float& player_y, float& velocity_x, float& velocity_y,
