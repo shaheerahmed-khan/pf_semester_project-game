@@ -31,8 +31,8 @@ make
 The Makefile compiles the whole game from one translation unit:
 
 ```bash
-g++ -std=c++17 -Wall -Wextra src/main.cpp -o vice-project-doom \
-    -lsfml-graphics -lsfml-window -lsfml-system
+g++ -std=c++17 -Wall -Wextra main.cpp -o vice-project-doom \
+    -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
 ```
 
 `make clean` removes the executable.
@@ -60,15 +60,14 @@ pf_semester_project-game/
 │   ├── backgrounds/
 │   ├── sprites/            player, enemies, bosses, fx, items, ui
 │   ├── tiles/
-│   └── audio/              music and sfx
-├── levels/level1.txt       ASCII level map
-├── docs/ASSETS.md          Asset tree and cleanup notes
-├── src/main.cpp            Entire game: level, physics, player, enemies, main
+│   └── music/              music and sfx
+├── levels/                 ASCII level maps
+├── main.cpp                Entire game: level, physics, player, enemies, main
 ├── Makefile
 └── .gitignore
 ```
 
-`src/main.cpp` is the only translation unit; there are no project headers or
+`main.cpp` is the only translation unit; there are no project headers or
 separate `.cpp` files. Every tuning value lives in `main()` and is passed to
 the functions in the same file.
 
@@ -90,7 +89,7 @@ The loader currently treats only `#` as solid. The tile legends in
 
 The current code follows the course restrictions:
 
-- The whole game is one translation unit (`src/main.cpp`); the Makefile
+- The whole game is one translation unit (`main.cpp`); the Makefile
   compiles it directly.
 - No global variables and no global constants. All numbers live in `main()`.
 - Plain arrays only; no `std::vector`, `std::string`, or other containers.

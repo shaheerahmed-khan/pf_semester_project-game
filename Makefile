@@ -1,25 +1,15 @@
 CXX ?= g++
 CXXFLAGS ?= -std=c++17 -Wall -Wextra
-LDFLAGS ?= -lsfml-graphics -lsfml-window -lsfml-system
-
-ifeq ($(OS),Windows_NT)
-EXE := .exe
-else
-EXE :=
-endif
-
+LIBS := -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
+EXE := $(if $(filter Windows_NT,$(OS)),.exe,)
 TARGET := vice-project-doom$(EXE)
-SRC := src/main.cpp
 
-.PHONY: all clean run
+.PHONY: all clean
 
 all: $(TARGET)
 
-$(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)
-
-run: $(TARGET)
-	./$(TARGET)
+$(TARGET): main.cpp
+	$(CXX) $(CXXFLAGS) main.cpp -o $@ $(LIBS)
 
 clean:
 	rm -f $(TARGET)
