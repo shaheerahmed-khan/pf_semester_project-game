@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "make: build game",
+      "type": "process",
+      "command": "make",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": ["$gcc"],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "run: vice-project-doom",
+      "type": "process",
+      "command": "${workspaceFolder}\\vice-project-doom.exe",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "dependsOn": "make: build game"
+    }
+  ]
+}
