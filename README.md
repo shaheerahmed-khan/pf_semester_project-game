@@ -20,15 +20,22 @@ but are not part of the current build.
 
 ## Build and run
 
-Requires C++17 and SFML 2.x (`libsfml-dev` on Debian/Ubuntu).
+Requires C++17 and SFML 2.6 (`libsfml-dev` on Ubuntu/Debian).
 
 ```bash
+sudo apt-get install g++ libsfml-dev
 make
-./vice-project-doom        # Linux/WSL
-# .\vice-project-doom.exe  # Windows
+./vice-project-doom
 ```
 
-`make clean` removes the executable and object files.
+The Makefile compiles the whole game from one translation unit:
+
+```bash
+g++ -std=c++17 -Wall -Wextra src/main.cpp -o vice-project-doom \
+    -lsfml-graphics -lsfml-window -lsfml-system
+```
+
+`make clean` removes the executable.
 
 Run from the repository root so paths such as `assets/backgrounds/level1.png`
 and `levels/level1.txt` resolve.
@@ -56,18 +63,14 @@ pf_semester_project-game/
 │   └── audio/              music and sfx
 ├── levels/level1.txt       ASCII level map
 ├── docs/ASSETS.md          Asset tree and cleanup notes
-├── src/
-│   ├── main.cpp            All tunables, asset loading, game loop
-│   ├── level.*             Plain-buffer ASCII map loader and drawing
-│   ├── physics.*           Gravity and tile collision helpers
-│   ├── player.*            Player movement and drawing
-│   └── enemies.*           Enemy AI, projectiles, and drawing
+├── src/main.cpp            Entire game: level, physics, player, enemies, main
 ├── Makefile
 └── .gitignore
 ```
 
-`src/config.h` was removed. Every tuning value now lives in `main()` and is
-passed to the functions that need it.
+`src/main.cpp` is the only translation unit; there are no project headers or
+separate `.cpp` files. Every tuning value lives in `main()` and is passed to
+the functions in the same file.
 
 ## Level format
 
@@ -87,6 +90,8 @@ The loader currently treats only `#` as solid. The tile legends in
 
 The current code follows the course restrictions:
 
+- The whole game is one translation unit (`src/main.cpp`); the Makefile
+  compiles it directly.
 - No global variables and no global constants. All numbers live in `main()`.
 - Plain arrays only; no `std::vector`, `std::string`, or other containers.
 - The level loader uses `FILE`, `fgets`, and fixed `char` buffers instead of
@@ -99,9 +104,10 @@ The current code follows the course restrictions:
 - No `Music` or `Sound` playback is used, because the strict SFML subset does
   not include it. Audio assets are kept for later.
 
-Two SFML calls are kept because the window cannot function without them:
-`window.isOpen()` and `window.pollEvent()`. SFML has no other way to receive
-`Event::Closed` or decide when to stop the loop.
+`window.isOpen()` and `window.pollEvent()` are kept because SFML has no other
+way to receive `Event::Closed` or decide when to stop the loop.
+`Clock::getElapsedTime().asMilliseconds()` is used only to pace frames, and
+`Space` is the agreed jump binding.
 
 ## Credits
 

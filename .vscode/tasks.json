@@ -10,7 +10,15 @@
       "group": { "kind": "build", "isDefault": true }
     },
     {
-      "label": "run: vice-project-doom",
+      "label": "run: vice-project-doom (Linux)",
+      "type": "process",
+      "command": "./vice-project-doom",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "dependsOn": "make: build game"
+    },
+    {
+      "label": "run: vice-project-doom (Windows)",
       "type": "process",
       "command": "${workspaceFolder}\\vice-project-doom.exe",
       "options": { "cwd": "${workspaceFolder}" },

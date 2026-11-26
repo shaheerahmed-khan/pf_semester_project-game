@@ -9,21 +9,17 @@ EXE :=
 endif
 
 TARGET := vice-project-doom$(EXE)
-SRC := src/main.cpp src/enemies.cpp src/level.cpp src/player.cpp src/physics.cpp
-OBJ := $(SRC:.cpp=.o)
+SRC := src/main.cpp
 
 .PHONY: all clean run
 
 all: $(TARGET)
 
-$(TARGET): $(OBJ)
-	$(CXX) $(OBJ) -o $(TARGET) $(LDFLAGS)
-
-src/%.o: src/%.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+$(TARGET): $(SRC)
+	$(CXX) $(CXXFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)
 
 run: $(TARGET)
 	./$(TARGET)
 
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -f $(TARGET)
